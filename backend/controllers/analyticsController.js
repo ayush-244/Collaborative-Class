@@ -1,0 +1,865 @@
+const Submission = require("../models/Submission");
+const DoubtThread = require("../models/DoubtThread");
+const DoubtReply = require("../models/DoubtReply");
+const User = require("../models/User");
+const mongoose = require("mongoose");
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const riskFromStrength = (strengthScore) => {
+  if (strengthScore >= 70) return "LOW";
+  if (strengthScore >= 40) return "MEDIUM";
+  return "HIGH";
+};
+
+/**
+ * Build a subject -> [ { studentId, avgMarks, strengthScore } ] map for a section.
+ * strengthScore here is derived from avgMarks (0–100), computed dynamically via aggregation.
+ */
+async function buildSubjectStrengthMap(section) {
+  const rows = await Submission.aggregate([
+    {
+      $lookup: {
+        from: "assignments",
+        localField: "assignment",
+        foreignField: "_id",
+        as: "assignmentDoc",
+      },
+    },
+    { $unwind: "$assignmentDoc" },
+    { $match: { "assignmentDoc.section": section } },
+    {
+      $group: {
+        _id: {
+          subject: "$assignmentDoc.subject",
+          studentId: "$student",
+        },
+        avgMarks: { $avg: "$marks" },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        subject: "$_id.subject",
+        studentId: "$_id.studentId",
+        avgMarks: { $ifNull: ["$avgMarks", 0] },
+        strengthScore: {
+          $let: {
+            vars: { m: { $ifNull: ["$avgMarks", 0] } },
+            in: { $min: [100, { $max: [0, "$$m"] }] },
+          },
+        },
+      },
+    },
+    { $sort: { subject: 1, strengthScore: -1 } },
+    {
+      $group: {
+        _id: "$subject",
+        students: {
+          $push: {
+            studentId: "$studentId",
+            avgMarks: "$avgMarks",
+            strengthScore: "$strengthScore",
+          },
+        },
+      },
+    },
+    { $project: { _id: 0, subject: "$_id", students: 1 } },
+  ]);
+
+  const map = {};
+  for (const r of rows) {
+    map[r.subject] = (r.students || []).map((s) => ({
+      studentId: String(s.studentId),
+      avgMarks: Math.round(Number(s.avgMarks || 0) * 100) / 100,
+      strengthScore: Math.round(Number(s.strengthScore || 0) * 100) / 100,
+    }));
+  }
+  return map;
+}
+
+
+async function buildSectionRiskRollup(section) {
+  const [students, submissionStats, threadStats, replyStats] = await Promise.all([
+    User.aggregate([
+      { $match: { role: "student", section } },
+      { $project: { _id: 1, name: 1, email: 1, regNo: 1 } },
+    ]),
+    Submission.aggregate([
+      {
+        $lookup: {
+          from: "assignments",
+          localField: "assignment",
+          foreignField: "_id",
+          as: "assignmentDoc",
+        },
+      },
+      { $unwind: "$assignmentDoc" },
+      { $match: { "assignmentDoc.section": section } },
+      {
+        $group: {
+          _id: "$student",
+          avgMarks: { $avg: "$marks" },
+          totalSubmissions: { $sum: 1 },
+          lateCount: { $sum: { $cond: ["$isLate", 1, 0] } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          studentId: "$_id",
+          avgMarks: { $ifNull: ["$avgMarks", 0] },
+          totalSubmissions: 1,
+          lateCount: 1,
+          lateRatio: {
+            $cond: [
+              { $gt: ["$totalSubmissions", 0] },
+              {
+                $multiply: [
+                  { $divide: ["$lateCount", "$totalSubmissions"] },
+                  100,
+                ],
+              },
+              0,
+            ],
+          },
+        },
+      },
+    ]),
+    DoubtThread.aggregate([
+      {
+        $match: {
+          section,
+          role: "student",
+          isDeleted: { $ne: true },
+        },
+      },
+      { $group: { _id: "$createdBy", threadsStarted: { $sum: 1 } } },
+      { $project: { _id: 0, studentId: "$_id", threadsStarted: 1 } },
+    ]),
+    DoubtReply.aggregate([
+      { $match: { role: "student", isDeleted: { $ne: true } } },
+      {
+        $lookup: {
+          from: "doubtthreads",
+          localField: "thread",
+          foreignField: "_id",
+          as: "threadDoc",
+        },
+      },
+      { $unwind: "$threadDoc" },
+      {
+        $match: {
+          "threadDoc.section": section,
+          "threadDoc.isDeleted": { $ne: true },
+        },
+      },
+      { $group: { _id: "$createdBy", repliesGiven: { $sum: 1 } } },
+      { $project: { _id: 0, studentId: "$_id", repliesGiven: 1 } },
+    ]),
+  ]);
+
+  const submissionByStudent = new Map(
+    submissionStats.map((s) => [String(s.studentId), s])
+  );
+  const threadsByStudent = new Map(
+    threadStats.map((t) => [String(t.studentId), t.threadsStarted])
+  );
+  const repliesByStudent = new Map(
+    replyStats.map((r) => [String(r.studentId), r.repliesGiven])
+  );
+
+  const rollup = students.map((s) => {
+    const studentId = String(s._id);
+    const studentName = s.name || s.email || studentId;
+    const sub = submissionByStudent.get(studentId) || null;
+
+    const avgMarks = sub ? Number(sub.avgMarks) || 0 : 0;
+    const totalSubmissions = sub ? Number(sub.totalSubmissions) || 0 : 0;
+    const lateCount = sub ? Number(sub.lateCount) || 0 : 0;
+    const lateRatio = sub ? Number(sub.lateRatio) || 0 : 0;
+
+    const threadsStarted = Number(threadsByStudent.get(studentId) || 0);
+    const repliesGiven = Number(repliesByStudent.get(studentId) || 0);
+
+    // Refined engagement (raw; normalized later against section max)
+    const engagementRaw = repliesGiven * 3 + threadsStarted * 2 - lateCount * 1;
+
+    return {
+      studentId,
+      studentName,
+      avgMarks,
+      totalSubmissions,
+      lateCount,
+      lateRatio,
+      threadsStarted,
+      repliesGiven,
+      engagementRaw,
+    };
+  });
+
+  const maxEngagementRaw = rollup.reduce((max, s) => {
+    const v = Math.max(0, Number(s.engagementRaw) || 0);
+    return v > max ? v : max;
+  }, 0);
+
+  const withScores = rollup.map((s) => {
+    const engagementScore =
+      maxEngagementRaw > 0
+        ? clamp((Math.max(0, s.engagementRaw) / maxEngagementRaw) * 100, 0, 100)
+        : 0;
+
+    const overallStrength = clamp(
+      clamp(s.avgMarks, 0, 100) * 0.6 +
+        clamp(engagementScore, 0, 100) * 0.2 -
+        clamp(s.lateRatio, 0, 100) * 0.1,
+      0,
+      100
+    );
+
+    const overallRisk = riskFromStrength(overallStrength);
+    const needsIntervention = overallRisk === "HIGH";
+
+    const riskIndexRaw =
+      (100 - clamp(s.avgMarks, 0, 100)) * 0.5 +
+      clamp(s.lateRatio, 0, 100) * 0.3 +
+      (100 - clamp(engagementScore, 0, 100)) * 0.2;
+    const riskIndex = clamp(riskIndexRaw, 0, 100);
+
+    return {
+      studentId: s.studentId,
+      studentName: s.studentName,
+      avgMarks: Math.round(Number(s.avgMarks || 0) * 100) / 100,
+      totalSubmissions: Number(s.totalSubmissions) || 0,
+      lateRatio: Math.round(Number(s.lateRatio || 0) * 100) / 100,
+      threadsStarted: Number(s.threadsStarted) || 0,
+      repliesGiven: Number(s.repliesGiven) || 0,
+      engagementScore: Math.round(engagementScore * 100) / 100,
+      overallStrength: Math.round(overallStrength * 100) / 100,
+      overallRisk,
+      riskIndex: Math.round(riskIndex * 100) / 100,
+      needsIntervention,
+    };
+  });
+
+  // Highest risk first => ascending by strength
+  withScores.sort((a, b) => a.overallStrength - b.overallStrength);
+  return withScores;
+}
+
+/**
+ * GET /api/analytics/student-strength
+ * Student-only. Returns per-subject strength analytics for req.user._id.
+ * Computed dynamically via aggregation; no stored analytics.
+ */
+const getStudentStrength = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    if (!studentId) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    const studentObjectId = mongoose.Types.ObjectId.isValid(studentId)
+      ? new mongoose.Types.ObjectId(studentId)
+      : null;
+    if (!studentObjectId) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    // 1) Submission stats per subject (only subjects where student has submissions)
+    const submissionStats = await Submission.aggregate([
+      { $match: { student: studentObjectId } },
+      {
+        $lookup: {
+          from: "assignments",
+          localField: "assignment",
+          foreignField: "_id",
+          as: "assignmentDoc",
+        },
+      },
+      { $unwind: "$assignmentDoc" },
+      {
+        $group: {
+          _id: "$assignmentDoc.subject",
+          avgMarks: { $avg: "$marks" },
+          totalSubmissions: { $sum: 1 },
+          lateSubmissions: { $sum: { $cond: ["$isLate", 1, 0] } },
+        },
+      },
+      { $project: { subject: "$_id", avgMarks: 1, totalSubmissions: 1, lateSubmissions: 1, _id: 0 } },
+    ]);
+
+    if (submissionStats.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // 2) Doubt threads created by this student, grouped by subject
+    const doubtThreadCounts = await DoubtThread.aggregate([
+      { $match: { createdBy: studentObjectId, isDeleted: { $ne: true } } },
+      { $group: { _id: { $ifNull: ["$subject", ""] }, doubtsAsked: { $sum: 1 } } },
+      { $project: { subject: "$_id", doubtsAsked: 1, _id: 0 } },
+    ]);
+
+    // 3) Doubt replies by this student, grouped by thread's subject
+    const doubtReplyCounts = await DoubtReply.aggregate([
+      { $match: { createdBy: studentObjectId, isDeleted: { $ne: true } } },
+      {
+        $lookup: {
+          from: "doubtthreads",
+          localField: "thread",
+          foreignField: "_id",
+          as: "threadDoc",
+        },
+      },
+      { $unwind: "$threadDoc" },
+      { $group: { _id: { $ifNull: ["$threadDoc.subject", ""] }, repliesGiven: { $sum: 1 } } },
+      { $project: { subject: "$_id", repliesGiven: 1, _id: 0 } },
+    ]);
+
+    const doubtBySubject = Object.fromEntries(doubtThreadCounts.map((d) => [d.subject, d.doubtsAsked]));
+    const repliesBySubject = Object.fromEntries(doubtReplyCounts.map((r) => [r.subject, r.repliesGiven]));
+
+    const result = submissionStats.map((row) => {
+      const subject = row.subject;
+      const avgMarks = row.avgMarks != null ? Number(row.avgMarks) : 0;
+      const totalSubmissions = Number(row.totalSubmissions) || 0;
+      const lateSubmissions = Number(row.lateSubmissions) || 0;
+      const doubtsAsked = Number(doubtBySubject[subject] || 0);
+      const repliesGiven = Number(repliesBySubject[subject] || 0);
+
+      const normalizedMarks = Math.min(100, Math.max(0, avgMarks));
+      const participationScore = repliesGiven * 2;
+      const latePenalty = lateSubmissions * 5;
+      const doubtPenalty = doubtsAsked * 2;
+
+      let strengthScore =
+        normalizedMarks * 0.6 +
+        participationScore * 0.2 -
+        latePenalty * 0.1 -
+        doubtPenalty * 0.1;
+      strengthScore = Math.min(100, Math.max(0, strengthScore));
+
+      let riskLevel = "MEDIUM";
+      if (strengthScore >= 70) riskLevel = "LOW";
+      else if (strengthScore < 40) riskLevel = "HIGH";
+
+      return {
+        subject,
+        avgMarks: Math.round(avgMarks * 100) / 100,
+        totalSubmissions,
+        lateSubmissions,
+        doubtsAsked,
+        repliesGiven,
+        strengthScore: Math.round(strengthScore * 100) / 100,
+        riskLevel,
+      };
+    });
+
+    res.status(200).json(result);
+  } catch (err) {
+    console.error("getStudentStrength error:", err);
+    res.status(500).json({ message: "Failed to compute student strength analytics" });
+  }
+};
+
+/**
+ * GET /api/analytics/peer-suggestions?subject=DBMS
+ * Teacher-only. Section-scoped. Suggests strong students to help weak students in a subject.
+ */
+const getPeerSuggestions = async (req, res) => {
+  try {
+    const teacherSection = req.user.section;
+    if (!teacherSection) {
+      return res.status(403).json({ message: "Section not assigned; access denied" });
+    }
+
+    const subject = String(req.query.subject || "").trim();
+    if (!subject) {
+      return res.status(400).json({ message: "subject query param is required" });
+    }
+
+    const [subjectMap, riskRollup, subjectTrendRows] = await Promise.all([
+      buildSubjectStrengthMap(teacherSection),
+      buildSectionRiskRollup(teacherSection),
+      // Subject-specific trend (single aggregation; no per-student queries)
+      Submission.aggregate([
+        {
+          $lookup: {
+            from: "assignments",
+            localField: "assignment",
+            foreignField: "_id",
+            as: "assignmentDoc",
+          },
+        },
+        { $unwind: "$assignmentDoc" },
+        { $match: { "assignmentDoc.section": teacherSection, "assignmentDoc.subject": subject } },
+        {
+          $group: {
+            _id: {
+              studentId: "$student",
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" },
+            },
+            avgMarks: { $avg: "$marks" },
+            totalSubmissions: { $sum: 1 },
+            lateCount: { $sum: { $cond: ["$isLate", 1, 0] } },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            studentId: "$_id.studentId",
+            year: "$_id.year",
+            month: "$_id.month",
+            avgMarks: { $ifNull: ["$avgMarks", 0] },
+            lateRatio: {
+              $cond: [
+                { $gt: ["$totalSubmissions", 0] },
+                { $multiply: [{ $divide: ["$lateCount", "$totalSubmissions"] }, 100] },
+                0,
+              ],
+            },
+          },
+        },
+        {
+          $addFields: {
+            strengthScore: {
+              $let: {
+                vars: {
+                  marks: { $min: [100, { $max: [0, "$avgMarks"] }] },
+                  late: { $min: [100, { $max: [0, "$lateRatio"] }] },
+                },
+                in: {
+                  $min: [
+                    100,
+                    {
+                      $max: [
+                        0,
+                        {
+                          $subtract: [
+                            { $multiply: ["$$marks", 0.7] },
+                            { $multiply: ["$$late", 0.3] },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        { $sort: { studentId: 1, year: 1, month: 1 } },
+        {
+          $group: {
+            _id: "$studentId",
+            months: {
+              $push: { year: "$year", month: "$month", strengthScore: "$strengthScore" },
+            },
+          },
+        },
+        { $project: { _id: 0, studentId: "$_id", lastTwo: { $slice: ["$months", -2] } } },
+      ]),
+    ]);
+
+    const subjectList = subjectMap[subject] || [];
+
+    // Map studentId -> subject strength score for this subject
+    const subjectStrengthByStudent = new Map(
+      subjectList.map((s) => [String(s.studentId), Number(s.strengthScore) || 0])
+    );
+
+    // Declining trend map for subject based on last 2 months
+    const decliningByStudent = new Map();
+    for (const row of subjectTrendRows) {
+      const sid = String(row.studentId);
+      const lastTwo = row.lastTwo || [];
+      let isDeclining = false;
+      if (lastTwo.length >= 2) {
+        const previous = Number(lastTwo[lastTwo.length - 2].strengthScore) || 0;
+        const current = Number(lastTwo[lastTwo.length - 1].strengthScore) || 0;
+        if (previous !== 0) {
+          const pct = ((current - previous) / previous) * 100;
+          if (pct <= -20) isDeclining = true;
+        }
+      }
+      decliningByStudent.set(sid, isDeclining);
+    }
+
+    // Strong students: top 30% by subject strength
+    const strongCut = Math.max(1, Math.ceil(subjectList.length * 0.3));
+    const strongStudents = subjectList.slice(0, strongCut).map((s) => String(s.studentId));
+
+    // Weak students: overallRisk HIGH OR subject strength < 40
+    const weakSet = new Set();
+    for (const s of riskRollup) {
+      if (s.overallRisk === "HIGH") weakSet.add(String(s.studentId));
+    }
+    for (const [sid, score] of subjectStrengthByStudent.entries()) {
+      if (score < 40) weakSet.add(String(sid));
+    }
+
+    // Build suggestions (one strong mentor per weak student; round-robin)
+    const suggestions = [];
+    if (strongStudents.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    const weakStudents = [...weakSet];
+    let idx = 0;
+    for (const weakStudent of weakStudents) {
+      // choose a strong student different from weak
+      let chosen = null;
+      for (let attempt = 0; attempt < strongStudents.length; attempt++) {
+        const candidate = strongStudents[(idx + attempt) % strongStudents.length];
+        if (candidate !== weakStudent) {
+          chosen = candidate;
+          idx = (idx + attempt + 1) % strongStudents.length;
+          break;
+        }
+      }
+      if (!chosen) continue;
+
+      const reason = decliningByStudent.get(weakStudent) ? "DECLINING_TREND" : "LOW_MARKS";
+      suggestions.push({
+        weakStudent,
+        strongStudent: chosen,
+        subject,
+        reason,
+      });
+    }
+
+    // Resolve student names for all suggestions
+    const allStudentIds = new Set();
+    for (const s of suggestions) {
+      allStudentIds.add(s.weakStudent);
+      allStudentIds.add(s.strongStudent);
+    }
+    const studentDocs = await User.find({
+      _id: { $in: [...allStudentIds].filter((id) => mongoose.Types.ObjectId.isValid(id)) },
+    }).select("name email");
+    const nameMap = new Map();
+    for (const doc of studentDocs) {
+      nameMap.set(String(doc._id), doc.name || doc.email || String(doc._id));
+    }
+
+    const enrichedSuggestions = suggestions.map((s) => ({
+      ...s,
+      weakStudentName: nameMap.get(s.weakStudent) || s.weakStudent,
+      strongStudentName: nameMap.get(s.strongStudent) || s.strongStudent,
+    }));
+
+    res.status(200).json(enrichedSuggestions);
+  } catch (err) {
+    console.error("getPeerSuggestions error:", err);
+    res.status(500).json({ message: "Failed to compute peer suggestions" });
+  }
+};
+
+/**
+ * GET /api/analytics/section-analytics
+ * Teacher-only. Returns per-subject weak-topic analytics for req.user.section.
+ * Section-isolated; computed dynamically via aggregation.
+ */
+const getSectionAnalytics = async (req, res) => {
+  try {
+    const teacherSection = req.user.section;
+    if (!teacherSection) {
+      return res.status(403).json({ message: "Section not assigned; access denied" });
+    }
+
+    // 1) Submission stats per subject for this section (via assignments in section)
+    const submissionStats = await Submission.aggregate([
+      {
+        $lookup: {
+          from: "assignments",
+          localField: "assignment",
+          foreignField: "_id",
+          as: "assignmentDoc",
+        },
+      },
+      { $unwind: "$assignmentDoc" },
+      { $match: { "assignmentDoc.section": teacherSection } },
+      {
+        $group: {
+          _id: "$assignmentDoc.subject",
+          avgMarks: { $avg: "$marks" },
+          totalSubmissions: { $sum: 1 },
+          lateCount: { $sum: { $cond: ["$isLate", 1, 0] } },
+        },
+      },
+      {
+        $project: {
+          subject: "$_id",
+          avgMarks: 1,
+          totalSubmissions: 1,
+          lateCount: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    // 2) Doubt count per subject in this section
+    const doubtCounts = await DoubtThread.aggregate([
+      { $match: { section: teacherSection, isDeleted: { $ne: true } } },
+      { $group: { _id: { $ifNull: ["$subject", ""] }, doubtCount: { $sum: 1 } } },
+      { $project: { subject: "$_id", doubtCount: 1, _id: 0 } },
+    ]);
+
+    const doubtBySubject = Object.fromEntries(doubtCounts.map((d) => [d.subject, d.doubtCount]));
+
+    const result = submissionStats.map((row) => {
+      const subject = row.subject;
+      const avgMarks = row.avgMarks != null ? Number(row.avgMarks) : 0;
+      const totalSubmissions = Number(row.totalSubmissions) || 0;
+      const lateCount = Number(row.lateCount) || 0;
+      const lateRatio = totalSubmissions > 0 ? (lateCount / totalSubmissions) * 100 : 0;
+      const doubtCount = Number(doubtBySubject[subject] || 0);
+
+      const weakTopicScore =
+        (100 - Math.min(100, Math.max(0, avgMarks))) * 0.5 +
+        lateRatio * 0.3 +
+        doubtCount * 0.2;
+
+      return {
+        subject,
+        avgMarks: Math.round(avgMarks * 100) / 100,
+        totalSubmissions,
+        lateRatio: Math.round(lateRatio * 100) / 100,
+        doubtCount,
+        weakTopicScore: Math.round(weakTopicScore * 100) / 100,
+      };
+    });
+
+    result.sort((a, b) => b.weakTopicScore - a.weakTopicScore);
+
+    res.status(200).json(result);
+  } catch (err) {
+    console.error("getSectionAnalytics error:", err);
+    res.status(500).json({ message: "Failed to compute section analytics" });
+  }
+};
+
+/**
+ * GET /api/analytics/interventions
+ * Teacher-only. Section-scoped. Computes intervention recommendations per student.
+ */
+const getInterventions = async (req, res) => {
+  try {
+    const teacherSection = req.user.section;
+    if (!teacherSection) {
+      return res.status(403).json({ message: "Section not assigned; access denied" });
+    }
+
+    const rollup = await buildSectionRiskRollup(teacherSection);
+
+    const result = rollup.map((s) => {
+      let recommendedAction = "MONITOR";
+
+      if (s.avgMarks < 40) recommendedAction = "ACADEMIC_SUPPORT";
+      else if (s.lateRatio > 30) recommendedAction = "ACADEMIC_SUPPORT";
+      else if (s.engagementScore < 30) recommendedAction = "ENGAGEMENT_SUPPORT";
+      else if (s.overallRisk === "HIGH") recommendedAction = "ACADEMIC_SUPPORT";
+
+      return {
+        studentId: s.studentId,
+        studentName: s.studentName,
+        avgMarks: s.avgMarks,
+        lateRatio: s.lateRatio,
+        engagementScore: s.engagementScore,
+        overallStrength: s.overallStrength,
+        overallRisk: s.overallRisk,
+        riskIndex: s.riskIndex,
+        recommendedAction,
+      };
+    });
+
+    res.status(200).json(result);
+  } catch (err) {
+    console.error("getInterventions error:", err);
+    res.status(500).json({ message: "Failed to compute interventions" });
+  }
+};
+
+/**
+ * GET /api/analytics/top-performers
+ * Teacher-only. Section-scoped. Returns top 5 students by overallStrength.
+ */
+const getTopPerformers = async (req, res) => {
+  try {
+    const teacherSection = req.user.section;
+    if (!teacherSection) {
+      return res.status(403).json({ message: "Section not assigned; access denied" });
+    }
+
+    const rollup = await buildSectionRiskRollup(teacherSection);
+
+    const result = rollup
+      .slice()
+      .sort((a, b) => b.overallStrength - a.overallStrength)
+      .slice(0, 5)
+      .map((s) => ({
+        studentId: s.studentId,
+        studentName: s.studentName,
+        overallStrength: s.overallStrength,
+        engagementScore: s.engagementScore,
+        avgMarks: s.avgMarks,
+        riskIndex: s.riskIndex,
+      }));
+
+    res.status(200).json(result);
+  } catch (err) {
+    console.error("getTopPerformers error:", err);
+    res.status(500).json({ message: "Failed to compute top performers" });
+  }
+};
+
+/**
+ * GET /api/analytics/risk-students
+ * Teacher-only. Section-scoped. Returns the full risk rollup (highest risk first).
+ */
+const getSectionRiskStudents = async (req, res) => {
+  try {
+    const teacherSection = req.user.section;
+    if (!teacherSection) {
+      return res.status(403).json({ message: "Section not assigned; access denied" });
+    }
+
+    const rollup = await buildSectionRiskRollup(teacherSection);
+    res.status(200).json(rollup);
+  } catch (err) {
+    console.error("getSectionRiskStudents error:", err);
+    res.status(500).json({ message: "Failed to compute section risk rollup" });
+  }
+};
+
+/**
+ * GET /api/analytics/student-trend
+ * Student-only. Month-wise performance trend from submissions.
+ */
+const getStudentTrend = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    if (!studentId) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    const studentObjectId = mongoose.Types.ObjectId.isValid(studentId)
+      ? new mongoose.Types.ObjectId(studentId)
+      : null;
+    if (!studentObjectId) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    const trend = await Submission.aggregate([
+      { $match: { student: studentObjectId } },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          avgMarks: { $avg: "$marks" },
+          totalSubmissions: { $sum: 1 },
+          lateCount: { $sum: { $cond: ["$isLate", 1, 0] } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          year: "$_id.year",
+          month: "$_id.month",
+          avgMarks: { $ifNull: ["$avgMarks", 0] },
+          lateRatio: {
+            $cond: [
+              { $gt: ["$totalSubmissions", 0] },
+              {
+                $multiply: [
+                  { $divide: ["$lateCount", "$totalSubmissions"] },
+                  100,
+                ],
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          strengthScore: {
+            $let: {
+              vars: {
+                marks: { $min: [100, { $max: [0, "$avgMarks"] }] },
+                late: { $min: [100, { $max: [0, "$lateRatio"] }] },
+              },
+              in: {
+                $min: [
+                  100,
+                  {
+                    $max: [
+                      0,
+                      {
+                        $subtract: [
+                          { $multiply: ["$$marks", 0.7] },
+                          { $multiply: ["$$late", 0.3] },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      { $sort: { year: 1, month: 1 } },
+    ]);
+
+    const result = trend.map((t) => ({
+      year: t.year,
+      month: t.month,
+      avgMarks: Math.round(Number(t.avgMarks || 0) * 100) / 100,
+      lateRatio: Math.round(Number(t.lateRatio || 0) * 100) / 100,
+      strengthScore: Math.round(Number(t.strengthScore || 0) * 100) / 100,
+    }));
+
+    let trendStatus = "INSUFFICIENT_DATA";
+    let percentageChange = null;
+
+    if (result.length >= 2) {
+      const previous = Number(result[result.length - 2].strengthScore) || 0;
+      const current = Number(result[result.length - 1].strengthScore) || 0;
+
+      if (previous === 0) {
+        trendStatus = "STABLE";
+        percentageChange = null;
+      } else {
+        const rawChange = ((current - previous) / previous) * 100;
+        percentageChange = Math.round(rawChange * 100) / 100;
+
+        if (percentageChange <= -20) trendStatus = "DECLINING";
+        else if (percentageChange >= 15) trendStatus = "IMPROVING";
+        else trendStatus = "STABLE";
+      }
+    }
+
+    res.status(200).json({
+      trendData: result,
+      trendStatus,
+      percentageChange,
+    });
+  } catch (err) {
+    console.error("getStudentTrend error:", err);
+    res.status(500).json({ message: "Failed to compute student trend" });
+  }
+};
+
+module.exports = {
+  getStudentStrength,
+  getSectionAnalytics,
+  getInterventions,
+  getTopPerformers,
+  getStudentTrend,
+  getSectionRiskStudents,
+  getPeerSuggestions,
+};
