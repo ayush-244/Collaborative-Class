@@ -381,9 +381,7 @@ npm run dev
 # Client starts on http://localhost:5173
 ```
 The Vite dev server automatically proxies `/api/*` and `/socket.io` requests to the backend at `http://localhost:5000`, so no CORS configuration is needed during development.
-
 #### Production Build
-
 ```bash
 # Build the frontend
 cd frontend
@@ -394,7 +392,6 @@ npm run build
 cd ../backend
 npm start
 ```
-
 ---
 
 ## API Reference
