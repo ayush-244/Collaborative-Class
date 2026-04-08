@@ -19,6 +19,7 @@ export interface PaginatedNotifications {
   notifications: NotificationDto[];
 }
 
+
 export const NotificationsApi = {
   list: (params?: { page?: number; limit?: number }) =>
     api.get<PaginatedNotifications>("/notifications", { params }),
@@ -29,4 +30,3 @@ export const NotificationsApi = {
   markAllRead: () =>
     api.patch<{ message: string }>("/notifications/read-all")
 };
-
