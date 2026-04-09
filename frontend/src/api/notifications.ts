@@ -30,3 +30,5 @@ export const NotificationsApi = {
   markAllRead: () =>
     api.patch<{ message: string }>("/notifications/read-all")
 };
+
+
