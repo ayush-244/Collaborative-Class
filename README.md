@@ -1032,5 +1032,5 @@ This project is licensed under the **ISC License**.
 ---
 
 <p align="center">
-  Built with ❤️ for smarter classrooms
+  Smarter classrooms
 </p>
