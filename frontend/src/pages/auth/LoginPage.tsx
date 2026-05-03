@@ -246,7 +246,7 @@ export const LoginPage: React.FC = () => {
 
 
 
-
+     cin >> id;
 
 
 
