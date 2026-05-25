@@ -1030,7 +1030,6 @@ Contributions are welcome! Please follow these guidelines:
 This project is licensed under the **ISC License**.
 
 ---
-
 <p align="center">
   Smarter classrooms
 </p>
