@@ -92,6 +92,7 @@ html:not(.dark) textarea::placeholder {
   color: #94a3b8 !important;
 }
 
+
 /* ── hover states ── */
 html:not(.dark) [class*="hover\:bg-slate-900"]:hover { background-color: #e2e8f0 !important; }
 html:not(.dark) [class*="hover\:bg-slate-800"]:hover { background-color: #e2e8f0 !important; }
