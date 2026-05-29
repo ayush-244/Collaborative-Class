@@ -1,0 +1,323 @@
+import React from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Plus, Trash2, Save, Copy, ArrowUp, ArrowDown } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import { ROUTES } from "../../routes/paths";
+import { TestsApi, type TestQuestionType } from "../../api/tests";
+
+type QuestionForm = {
+  type: TestQuestionType;
+  prompt: string;
+  optionsText: string;
+  correctAnswer: string;
+  marks: string;
+};
+
+const emptyQuestion = (): QuestionForm => ({
+  type: "MCQ",
+  prompt: "",
+  optionsText: "Option 1\nOption 2",
+  correctAnswer: "Option 1",
+  marks: "1",
+});
+
+const toInputDateTime = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  const pad = (num: number) => String(num).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+export const CreateTestPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit");
+  const [loading, setLoading] = React.useState(Boolean(editId));
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+  const [title, setTitle] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [duration, setDuration] = React.useState("30");
+  const [totalMarks, setTotalMarks] = React.useState("10");
+  const [startDateTime, setStartDateTime] = React.useState("");
+  const [endDateTime, setEndDateTime] = React.useState("");
+  const [section, setSection] = React.useState("");
+  const [questions, setQuestions] = React.useState<QuestionForm[]>([emptyQuestion()]);
+
+  const totalMarksCalc = React.useMemo(() => {
+    return questions.reduce((sum, q) => sum + (Number(q.marks) || 0), 0);
+  }, [questions]);
+
+  React.useEffect(() => {
+    setTotalMarks(String(totalMarksCalc));
+  }, [totalMarksCalc]);
+
+  React.useEffect(() => {
+    if (!editId) return;
+    TestsApi.getById(editId)
+      .then((res: { data: { title: string; description: string; duration: number; totalMarks: number; startDateTime: string; endDateTime: string; section: string; questions: Array<{ type: TestQuestionType; prompt: string; options: string[]; correctAnswer?: string; marks: number; }> } }) => {
+        const test = res.data;
+        setTitle(test.title);
+        setDescription(test.description);
+        setDuration(String(test.duration));
+        setTotalMarks(String(test.totalMarks));
+        setSection(test.section);
+        setStartDateTime(toInputDateTime(test.startDateTime));
+        setEndDateTime(toInputDateTime(test.endDateTime));
+        setQuestions(
+          test.questions.map((question) => ({
+            type: question.type,
+            prompt: question.prompt,
+            optionsText: question.options.join("\n"),
+            correctAnswer: question.correctAnswer ?? "",
+            marks: String(question.marks),
+          }))
+        );
+      })
+        .catch((err: any) => setError(err?.response?.data?.message ?? "Failed to load test."))
+      .finally(() => setLoading(false));
+  }, [editId]);
+
+  const updateQuestion = (index: number, patch: Partial<QuestionForm>) => {
+    setQuestions((prev) => prev.map((question, currentIndex) => (currentIndex === index ? { ...question, ...patch } : question)));
+  };
+
+  const moveQuestion = (index: number, dir: number) => {
+    setQuestions((prev) => {
+      const copy = [...prev];
+      const to = index + dir;
+      if (to < 0 || to >= copy.length) return prev;
+      const [item] = copy.splice(index, 1);
+      copy.splice(to, 0, item);
+      return copy;
+    });
+  };
+
+  const duplicateQuestion = (index: number) => {
+    setQuestions((prev) => {
+      const copy = [...prev];
+      copy.splice(index + 1, 0, { ...prev[index] });
+      return copy;
+    });
+  };
+
+  const handleSubmit = async () => {
+    const errors: Record<string, string> = {};
+    if (!title.trim()) errors.title = "Test title is required";
+    if (!section.trim()) errors.section = "Section is required";
+    if (!duration || Number(duration) <= 0) errors.duration = "Duration must be greater than 0";
+    if (!startDateTime) errors.startDateTime = "Start date & time required";
+    if (!endDateTime) errors.endDateTime = "End date & time required";
+    if (startDateTime && endDateTime && new Date(startDateTime) >= new Date(endDateTime)) errors.endDateTime = "End date must be after start date";
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      setError("Please fix the highlighted fields.");
+      return;
+    }
+
+    const payload = {
+      title: title.trim(),
+      description: description.trim(),
+      duration: Number(duration),
+      totalMarks: Number(totalMarks),
+      startDateTime,
+      endDateTime,
+      section: section.trim(),
+      questions: questions.map((question, index) => ({
+        type: question.type,
+        prompt: question.prompt.trim(),
+        options: question.type === "MCQ" ? question.optionsText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : question.type === "TRUE_FALSE" ? ["True", "False"] : [],
+        correctAnswer: question.correctAnswer.trim(),
+        marks: Number(question.marks),
+        order: index,
+      })),
+    };
+
+    setSaving(true);
+    setError(null);
+    try {
+      if (editId) {
+        await TestsApi.update(editId, payload);
+      } else {
+        await TestsApi.create(payload);
+      }
+      navigate(ROUTES.teacherTests);
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? "Failed to save test.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="glass-surface rounded-3xl p-6 text-sm text-slate-300">Loading test...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">{editId ? "Edit Test" : "Create Test"}</h1>
+          <p className="mt-1 text-sm text-slate-400">Build timed quizzes with MCQ, True/False, and Short Answer questions.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.teacherTests)}>Back</Button>
+          <Button onClick={() => void handleSubmit()} disabled={saving}>
+            <Save className="mr-2 h-4 w-4" />
+            {saving ? "Saving..." : editId ? "Update test" : "Create & Publish"}
+          </Button>
+        </div>
+      </header>
+
+      {error && <p className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">{error}</p>}
+
+      <section className="glass-surface rounded-3xl p-6">
+        <h2 className="text-sm font-medium">Test Information</h2>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2 text-sm">
+          <div>
+            <label className="mb-1 block text-xs text-slate-300">Test Title <span className="text-rose-400">*</span></label>
+            <input aria-label="Test Title" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+            {fieldErrors.title && <p className="mt-1 text-xs text-rose-300">{fieldErrors.title}</p>}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs text-slate-300">Section</label>
+            <input aria-label="Section" value={section} onChange={(e) => setSection(e.target.value)} className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs text-slate-300">Duration (minutes) <span className="text-rose-400">*</span></label>
+            <input value={duration} onChange={(e) => setDuration(e.target.value)} type="number" min="1" className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+            {fieldErrors.duration && <p className="mt-1 text-xs text-rose-300">{fieldErrors.duration}</p>}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs text-slate-300">Total Marks</label>
+            <div className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50">{totalMarks}</div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs text-slate-300">Start Date & Time <span className="text-rose-400">*</span></label>
+            <input value={startDateTime} onChange={(e) => setStartDateTime(e.target.value)} type="datetime-local" className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+            {fieldErrors.startDateTime && <p className="mt-1 text-xs text-rose-300">{fieldErrors.startDateTime}</p>}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs text-slate-300">End Date & Time <span className="text-rose-400">*</span></label>
+            <input value={endDateTime} onChange={(e) => setEndDateTime(e.target.value)} type="datetime-local" className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+            {fieldErrors.endDateTime && <p className="mt-1 text-xs text-rose-300">{fieldErrors.endDateTime}</p>}
+          </div>
+
+          <div className="lg:col-span-2">
+            <label className="mb-1 block text-xs text-slate-300">Description</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full min-h-[88px] rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium">Questions</h3>
+            <p className="mt-1 text-xs text-slate-400">Add questions, set marks, and pick the correct answer.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setQuestions((prev) => [...prev, emptyQuestion()])}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add question
+            </Button>
+            <div className="text-sm text-slate-400">Total marks: <span className="font-medium text-slate-100">{totalMarksCalc}</span></div>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {questions.map((question, index) => (
+            <div key={index} className="glass-surface rounded-3xl p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-50">Question {index + 1}</p>
+                  <p className="text-xs text-slate-400">Type: {question.type} • Marks: {question.marks || 0}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button title="Duplicate" className="text-slate-400 hover:text-slate-200" onClick={() => duplicateQuestion(index)}><Copy className="h-4 w-4" /></button>
+                  <button title="Move up" className="text-slate-400 hover:text-slate-200" onClick={() => moveQuestion(index, -1)}><ArrowUp className="h-4 w-4" /></button>
+                  <button title="Move down" className="text-slate-400 hover:text-slate-200" onClick={() => moveQuestion(index, 1)}><ArrowDown className="h-4 w-4" /></button>
+                  {questions.length > 1 && (
+                    <button title="Delete" className="text-rose-400 hover:text-rose-200" onClick={() => setQuestions((prev) => prev.filter((_, qIndex) => qIndex !== index))}>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-2 text-sm">
+                <div>
+                  <label className="mb-1 block text-xs text-slate-300">Question Type</label>
+                  <select value={question.type} onChange={(e) => {
+                    const type = e.target.value as TestQuestionType;
+                    updateQuestion(index, {
+                      type,
+                      optionsText: type === "MCQ" ? "Option 1\nOption 2" : type === "TRUE_FALSE" ? "True\nFalse" : "",
+                      correctAnswer: type === "TRUE_FALSE" ? "True" : "",
+                    });
+                  }} className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none">
+                    <option value="MCQ">MCQ</option>
+                    <option value="TRUE_FALSE">True / False</option>
+                    <option value="SHORT_ANSWER">Short Answer</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs text-slate-300">Marks</label>
+                  <input value={question.marks} onChange={(e) => updateQuestion(index, { marks: e.target.value })} type="number" min="1" className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+                </div>
+
+                <div className="lg:col-span-2">
+                  <label className="mb-1 block text-xs text-slate-300">Question</label>
+                  <textarea value={question.prompt} onChange={(e) => updateQuestion(index, { prompt: e.target.value })} className="w-full min-h-[80px] rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+                </div>
+
+                {question.type === "MCQ" && (
+                  <div className="lg:col-span-2">
+                    <label className="mb-1 block text-xs text-slate-300">Options (one per line)</label>
+                    <textarea value={question.optionsText} onChange={(e) => updateQuestion(index, { optionsText: e.target.value })} className="w-full min-h-[72px] rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+                    <label className="mb-1 block mt-2 text-xs text-slate-300">Correct Answer</label>
+                    <input value={question.correctAnswer} onChange={(e) => updateQuestion(index, { correctAnswer: e.target.value })} className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+                  </div>
+                )}
+
+                {question.type === "TRUE_FALSE" && (
+                  <div className="lg:col-span-2">
+                    <label className="mb-1 block text-xs text-slate-300">Correct Answer</label>
+                    <select value={question.correctAnswer} onChange={(e) => updateQuestion(index, { correctAnswer: e.target.value })} className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none">
+                      <option value="True">True</option>
+                      <option value="False">False</option>
+                    </select>
+                  </div>
+                )}
+
+                {question.type === "SHORT_ANSWER" && (
+                  <div className="lg:col-span-2">
+                    <label className="mb-1 block text-xs text-slate-300">Answer Key</label>
+                    <input value={question.correctAnswer} onChange={(e) => updateQuestion(index, { correctAnswer: e.target.value })} className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="glass-surface rounded-3xl p-4">
+        <h3 className="text-sm font-medium">Review</h3>
+        <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-2xl bg-slate-900/60 p-3">Total Questions<div className="text-lg font-medium mt-1">{questions.length}</div></div>
+          <div className="rounded-2xl bg-slate-900/60 p-3">Total Marks<div className="text-lg font-medium mt-1">{totalMarksCalc}</div></div>
+          <div className="rounded-2xl bg-slate-900/60 p-3">Duration<div className="text-lg font-medium mt-1">{duration} minutes</div></div>
+          <div className="rounded-2xl bg-slate-900/60 p-3">Window<div className="text-sm mt-1">{startDateTime ? new Date(startDateTime).toLocaleString() : '-'} → {endDateTime ? new Date(endDateTime).toLocaleString() : '-'}</div></div>
+        </div>
+      </section>
+    </div>
+  );
+};

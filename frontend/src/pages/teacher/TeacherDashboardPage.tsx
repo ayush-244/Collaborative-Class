@@ -22,6 +22,7 @@ import {
   mapPeerSessions
 } from "../../api/analytics";
 import { DashboardApi, type TeacherDashboardData } from "../../api/dashboard";
+import { TestsApi, type TeacherTestSummary } from "../../api/tests";
 import { StatCard } from "../../components/analytics/StatCard";
 import { RiskBadge } from "../../components/analytics/RiskBadge";
 import { TrendPill } from "../../components/analytics/TrendPill";
@@ -37,6 +38,7 @@ export const TeacherDashboardPage: React.FC = () => {
   const [topPerformers, setTopPerformers] = React.useState<TopPerformerRow[]>([]);
   const [sectionAnalytics, setSectionAnalytics] = React.useState<SectionAnalyticsRow[]>([]);
   const [dashboardData, setDashboardData] = React.useState<TeacherDashboardData | null>(null);
+  const [testSummary, setTestSummary] = React.useState<TeacherTestSummary | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [riskFilter, setRiskFilter] = React.useState<"all" | "high" | "medium">(
     "all"
@@ -83,6 +85,12 @@ export const TeacherDashboardPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
+  }, []);
+
+  React.useEffect(() => {
+    TestsApi.teacherSummary()
+      .then((res: { data: TeacherTestSummary }) => setTestSummary(res.data))
+      .catch(() => setTestSummary(null));
   }, []);
 
   const highRisk = riskStudents.filter((s) => s.riskBand === "high");
@@ -566,6 +574,35 @@ export const TeacherDashboardPage: React.FC = () => {
           trend="Mentorship graph is warming up"
           accent="sky"
         />
+      </section>
+
+      <section className="glass-surface rounded-3xl p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+              Test intelligence
+            </p>
+            <p className="text-xs text-slate-300">
+              Timed test activity, anti-cheat violations, and score distribution.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6 text-[11px]">
+          {[
+            { label: "Total tests", value: testSummary?.totalTests ?? 0, accent: "sky" },
+            { label: "Total attempts", value: testSummary?.totalAttempts ?? 0, accent: "emerald" },
+            { label: "Average score", value: testSummary ? testSummary.averageScore.toFixed(1) : "0.0", accent: "amber" },
+            { label: "Highest score", value: testSummary?.highestScore ?? 0, accent: "rose" },
+            { label: "Violation students", value: testSummary?.studentsWithViolations ?? 0, accent: "violet" },
+            { label: "Auto-submitted", value: testSummary?.autoSubmittedTests ?? 0, accent: "orange" },
+          ].map((item) => (
+            <div key={item.label} className="rounded-2xl bg-slate-900/80 px-3 py-3">
+              <p className="text-[10px] text-slate-400">{item.label}</p>
+              <p className="mt-1 text-lg font-semibold text-slate-50">{item.value}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,2.1fr)_minmax(0,1.4fr)]">

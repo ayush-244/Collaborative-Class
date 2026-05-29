@@ -14,7 +14,8 @@ import {
   FileText,
   Pencil,
   Check,
-  X
+  X,
+  ClipboardList
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "../theme/ThemeProvider";
@@ -35,6 +36,7 @@ const navItemsByRole: Record<
   teacher: [
     { label: "Overview", to: ROUTES.teacherDashboard, icon: BarChart3 },
     { label: "Assignments", to: ROUTES.teacherAssignments, icon: FileText },
+    { label: "Tests", to: ROUTES.teacherTests, icon: ClipboardList },
     { label: "Doubts", to: ROUTES.teacherDoubts, icon: MessageCircle },
     { label: "Study Materials", to: ROUTES.teacherMaterials, icon: BookOpen },
     { label: "Peer Sessions", to: ROUTES.teacherPeerSessions, icon: Share2 }
@@ -46,6 +48,7 @@ const navItemsByRole: Record<
       icon: GraduationCap
     },
     { label: "Assignments", to: ROUTES.studentAssignments, icon: FileText },
+    { label: "Tests", to: ROUTES.studentTests, icon: ClipboardList },
     { label: "Doubts", to: ROUTES.studentDoubts, icon: MessageCircle },
     { label: "Study Materials", to: ROUTES.studentMaterials, icon: BookOpen },
     { label: "Peer Sessions", to: ROUTES.studentPeerSessions, icon: Share2 }

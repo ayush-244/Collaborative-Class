@@ -290,9 +290,7 @@ export const StudentDashboardPage: React.FC = () => {
                       >
                         <RadialBar
                           background
-                          clockWise
                           dataKey="value"
-                          minAngle={15}
                         />
                       </RadialBarChart>
                     </ResponsiveContainer>
@@ -320,7 +318,15 @@ export const StudentDashboardPage: React.FC = () => {
                 How CollabClass thinks your curve is moving.
               </p>
             </div>
-            {trend && <TrendPill status={trend.trendStatus} />}
+            {trend && (
+              <TrendPill
+                status={
+                  trend.trendStatus === "INSUFFICIENT_DATA"
+                    ? "STABLE"
+                    : trend.trendStatus
+                }
+              />
+            )}
           </div>
           <div className="h-40">
             {trend && trend.trendData.length > 0 ? (

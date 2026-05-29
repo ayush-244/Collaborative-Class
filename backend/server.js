@@ -36,6 +36,8 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const studyMaterialRoutes = require("./routes/studyMaterialRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const peerSessionRoutes = require("./routes/peerSessionRoutes");
+const testRoutes = require("./routes/testRoutes");
+const { handleRecordTabSwitch } = require("./controllers/testController");
 
 // Use Routes
 app.use("/api/auth", authRoutes);
@@ -47,6 +49,7 @@ app.use("/api/doubts", require("./routes/doubtRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/peer-sessions", peerSessionRoutes);
+app.use("/api/tests", testRoutes);
 
 app.get("/", (req, res) => {
   res.send("CollabClass API Running...");
@@ -90,6 +93,27 @@ io.on("connection", (socket) => {
   const userId = socket.user._id.toString();
   registerUser(userId, socket.id);
   console.log(`[Socket] User ${userId} connected (socket: ${socket.id})`);
+
+  socket.on("test_tab_switch", async ({ attemptId }, ack) => {
+    try {
+      const result = await handleRecordTabSwitch({
+        attemptId,
+        userId: socket.user._id,
+        req: {
+          headers: socket.handshake.headers,
+          ip: socket.handshake.address,
+          socket: { remoteAddress: socket.handshake.address },
+        },
+      });
+      if (typeof ack === "function") {
+        ack(result.body);
+      }
+    } catch (error) {
+      if (typeof ack === "function") {
+        ack({ message: "Failed to record tab switch" });
+      }
+    }
+  });
 
   socket.on("disconnect", () => {
     removeUserSocket(socket.id);

@@ -1,0 +1,1 @@
+import{d as t}from"./index-DlG6JI26.js";const l={list:a=>t.get("/materials",{params:a}),upload:a=>t.post("/materials",a),uploadFile:a=>t.post("/materials/upload-file",a,{headers:{"Content-Type":"multipart/form-data"}}),remove:a=>t.delete(`/materials/${a}`)};export{l as S};

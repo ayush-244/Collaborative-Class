@@ -17,10 +17,14 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = tokenStorage.get();
   if (token) {
-    config.headers = {
-      ...config.headers,
-      Authorization: `Bearer ${token}`
-    };
+    if (config.headers && typeof (config.headers as any).set === "function") {
+      (config.headers as any).set("Authorization", `Bearer ${token}`);
+    } else {
+      config.headers = {
+        ...(config.headers ?? {}),
+        Authorization: `Bearer ${token}`
+      } as any;
+    }
   }
   return config;
 });
