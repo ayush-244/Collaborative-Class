@@ -8,18 +8,29 @@ import { TestsApi, type TestQuestionType } from "../../api/tests";
 type QuestionForm = {
   type: TestQuestionType;
   prompt: string;
-  optionsText: string;
+  options: Array<{ id: string; text: string }>;
+  correctOptionId?: string;
   correctAnswer: string;
   marks: string;
 };
 
-const emptyQuestion = (): QuestionForm => ({
-  type: "MCQ",
-  prompt: "",
-  optionsText: "Option 1\nOption 2",
-  correctAnswer: "Option 1",
-  marks: "1",
-});
+const genId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+
+const emptyQuestion = (): QuestionForm => {
+  const a = genId();
+  const b = genId();
+  return {
+    type: "MCQ",
+    prompt: "",
+    options: [
+      { id: a, text: "Option 1" },
+      { id: b, text: "Option 2" },
+    ],
+    correctOptionId: a,
+    correctAnswer: "",
+    marks: "1",
+  };
+};
 
 const toInputDateTime = (value?: string | null) => {
   if (!value) return "";
@@ -66,13 +77,18 @@ export const CreateTestPage: React.FC = () => {
         setStartDateTime(toInputDateTime(test.startDateTime));
         setEndDateTime(toInputDateTime(test.endDateTime));
         setQuestions(
-          test.questions.map((question) => ({
-            type: question.type,
-            prompt: question.prompt,
-            optionsText: question.options.join("\n"),
-            correctAnswer: question.correctAnswer ?? "",
-            marks: String(question.marks),
-          }))
+          test.questions.map((question) => {
+            const opts = (question.options || []).map((opt: string) => ({ id: genId(), text: opt }));
+            const matched = opts.find((o) => String(o.text).trim() === String(question.correctAnswer).trim());
+            return {
+              type: question.type,
+              prompt: question.prompt,
+              options: opts,
+              correctOptionId: matched?.id,
+              correctAnswer: question.correctAnswer ?? "",
+              marks: String(question.marks),
+            } as QuestionForm;
+          })
         );
       })
         .catch((err: any) => setError(err?.response?.data?.message ?? "Failed to load test."))
@@ -102,6 +118,32 @@ export const CreateTestPage: React.FC = () => {
     });
   };
 
+  const addOption = (qIndex: number) => {
+    setQuestions((prev) => {
+      const copy = [...prev];
+      const q = { ...copy[qIndex] };
+      q.options = q.options ? [...q.options, { id: genId(), text: `Option ${q.options.length + 1}` }] : [{ id: genId(), text: 'Option 1' }, { id: genId(), text: 'Option 2' }];
+      copy[qIndex] = q;
+      return copy;
+    });
+  };
+
+  const updateOption = (qIndex: number, optionId: string, text: string) => {
+    setQuestions((prev) => prev.map((q, i) => (i === qIndex ? { ...q, options: (q.options || []).map((o) => (o.id === optionId ? { ...o, text } : o)) } : q)));
+  };
+
+  const deleteOption = (qIndex: number, optionId: string) => {
+    setQuestions((prev) => {
+      const copy = [...prev];
+      const q = { ...copy[qIndex] } as QuestionForm;
+      if (!q.options || q.options.length <= 2) return prev; // ensure min 2
+      q.options = q.options.filter((o) => o.id !== optionId);
+      if (q.correctOptionId === optionId) q.correctOptionId = q.options[0]?.id;
+      copy[qIndex] = q;
+      return copy;
+    });
+  };
+
   const handleSubmit = async () => {
     const errors: Record<string, string> = {};
     if (!title.trim()) errors.title = "Test title is required";
@@ -110,6 +152,26 @@ export const CreateTestPage: React.FC = () => {
     if (!startDateTime) errors.startDateTime = "Start date & time required";
     if (!endDateTime) errors.endDateTime = "End date & time required";
     if (startDateTime && endDateTime && new Date(startDateTime) >= new Date(endDateTime)) errors.endDateTime = "End date must be after start date";
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      setError("Please fix the highlighted fields.");
+      return;
+    }
+
+    // Per-question validation
+    questions.forEach((question, qi) => {
+      if (question.type === "MCQ") {
+        const opts = (question.options || []).map((o) => String(o.text || "").trim());
+        if (opts.length < 2) errors[`q_${qi}_options`] = "Minimum 2 options required";
+        if (opts.some((t) => !t)) errors[`q_${qi}_options`] = "Empty options are not allowed";
+        const dup = opts.some((t, i) => opts.indexOf(t) !== i);
+        if (dup) errors[`q_${qi}_options`] = "Duplicate options are not allowed";
+        if (!question.correctOptionId || !(question.options || []).find((o) => o.id === question.correctOptionId)) errors[`q_${qi}_correct`] = "Select the correct answer";
+      } else if (question.type === "SHORT_ANSWER") {
+        if (!question.correctAnswer?.trim()) errors[`q_${qi}_correct`] = "Answer key required";
+      }
+    });
+
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
       setError("Please fix the highlighted fields.");
@@ -127,8 +189,8 @@ export const CreateTestPage: React.FC = () => {
       questions: questions.map((question, index) => ({
         type: question.type,
         prompt: question.prompt.trim(),
-        options: question.type === "MCQ" ? question.optionsText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean) : question.type === "TRUE_FALSE" ? ["True", "False"] : [],
-        correctAnswer: question.correctAnswer.trim(),
+        options: question.type === "MCQ" ? (question.options || []).map((o) => String(o.text || "").trim()) : question.type === "TRUE_FALSE" ? ["True", "False"] : [],
+        correctAnswer: question.type === "MCQ" ? ((question.options || []).find((o) => o.id === question.correctOptionId)?.text || "") : question.correctAnswer.trim(),
         marks: Number(question.marks),
         order: index,
       })),
@@ -256,11 +318,15 @@ export const CreateTestPage: React.FC = () => {
                   <label className="mb-1 block text-xs text-slate-300">Question Type</label>
                   <select value={question.type} onChange={(e) => {
                     const type = e.target.value as TestQuestionType;
-                    updateQuestion(index, {
-                      type,
-                      optionsText: type === "MCQ" ? "Option 1\nOption 2" : type === "TRUE_FALSE" ? "True\nFalse" : "",
-                      correctAnswer: type === "TRUE_FALSE" ? "True" : "",
-                    });
+                    if (type === "MCQ") {
+                      updateQuestion(index, { type, options: question.options && question.options.length >= 2 ? question.options : [{ id: genId(), text: 'Option 1' }, { id: genId(), text: 'Option 2' }], correctOptionId: question.options && question.options.length ? question.options[0].id : undefined, correctAnswer: '' });
+                    } else if (type === "TRUE_FALSE") {
+                      const t = genId();
+                      const f = genId();
+                      updateQuestion(index, { type, options: [{ id: t, text: 'True' }, { id: f, text: 'False' }], correctOptionId: t, correctAnswer: 'True' });
+                    } else {
+                      updateQuestion(index, { type, options: [], correctOptionId: undefined, correctAnswer: '' });
+                    }
                   }} className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none">
                     <option value="MCQ">MCQ</option>
                     <option value="TRUE_FALSE">True / False</option>
@@ -280,10 +346,26 @@ export const CreateTestPage: React.FC = () => {
 
                 {question.type === "MCQ" && (
                   <div className="lg:col-span-2">
-                    <label className="mb-1 block text-xs text-slate-300">Options (one per line)</label>
-                    <textarea value={question.optionsText} onChange={(e) => updateQuestion(index, { optionsText: e.target.value })} className="w-full min-h-[72px] rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
-                    <label className="mb-1 block mt-2 text-xs text-slate-300">Correct Answer</label>
-                    <input value={question.correctAnswer} onChange={(e) => updateQuestion(index, { correctAnswer: e.target.value })} className="w-full rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+                    <label className="mb-1 block text-xs text-slate-300">Options</label>
+                    <div className="space-y-2">
+                      {(question.options || []).map((opt, oIndex) => (
+                        <div key={opt.id} className="flex items-center gap-2">
+                          <div className="w-6 text-xs text-slate-300">{String.fromCharCode(65 + oIndex)}</div>
+                          <input value={opt.text} onChange={(e) => updateOption(index, opt.id, e.target.value)} className="flex-1 rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-50 outline-none" />
+                          <label className="text-xs text-slate-300">Correct</label>
+                          <input type="radio" name={`correct-${index}`} checked={question.correctOptionId === opt.id} onChange={() => updateQuestion(index, { correctOptionId: opt.id })} />
+                          <button className="text-rose-400 hover:text-rose-200" onClick={() => deleteOption(index, opt.id)} disabled={(question.options || []).length <= 2}>
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2">
+                      <Button variant="outline" size="sm" onClick={() => addOption(index)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add option
+                      </Button>
+                    </div>
                   </div>
                 )}
 
