@@ -29,9 +29,16 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
-    // ✅ NEW FIELDS
+    // ✅ REGISTRATION NUMBER (Required for students)
     regNo: {
       type: String,
+      required: function() {
+        return this.role === "student";
+      },
+      unique: true,
+      sparse: true,
+      trim: true,
+      index: true,
     },
 
     isUniversityUser: {

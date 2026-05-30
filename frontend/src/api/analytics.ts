@@ -4,6 +4,7 @@ import { api } from "./axios";
 export interface RiskRollupRow {
   studentId: string;
   studentName: string;
+  studentRegNo?: string | null;
   avgMarks: number;
   totalSubmissions: number;
   lateRatio: number;
@@ -30,6 +31,7 @@ export interface SectionAnalyticsRow {
 export interface InterventionRow {
   studentId: string;
   studentName: string;
+  studentRegNo?: string | null;
   avgMarks: number;
   lateRatio: number;
   engagementScore: number;
@@ -42,6 +44,7 @@ export interface InterventionRow {
 export interface TopPerformerRow {
   studentId: string;
   studentName: string;
+  studentRegNo?: string | null;
   overallStrength: number;
   engagementScore: number;
   avgMarks: number;
@@ -52,7 +55,9 @@ export interface PeerSuggestionRow {
   weakStudent: string;
   strongStudent: string;
   weakStudentName: string;
+  weakStudentRegNo?: string | null;
   strongStudentName: string;
+  strongStudentRegNo?: string | null;
   subject: string;
   reason: "DECLINING_TREND" | "LOW_MARKS";
 }
@@ -115,6 +120,7 @@ export interface RiskStudent {
   studentId: string;
   name: string;
   id: string;
+  regNo?: string | null;
   avgMarks: number;
   totalSubmissions: number;
   lateRatio: number;
@@ -132,7 +138,9 @@ export interface PeerSuggestion {
   weakStudent: string;
   strongStudent: string;
   mentorName: string;
+  mentorRegNo?: string | null;
   studentName: string;
+  studentRegNo?: string | null;
   subject: string;
   reason: string;
   predictedLift: number;
@@ -158,6 +166,7 @@ export function mapRiskStudents(rows: RiskRollupRow[]): RiskStudent[] {
   return rows.map((r) => ({
     ...r,
     id: r.studentId,
+    regNo: r.studentRegNo || null,
     name: r.studentName || r.studentId,
     riskBand: r.overallRisk.toLowerCase() as "low" | "medium" | "high",
     trendStatus: r.riskIndex >= 65 ? "DECLINING" : r.riskIndex >= 35 ? "STABLE" : "IMPROVING",
@@ -171,7 +180,9 @@ export function mapPeerSuggestions(rows: PeerSuggestionRow[]): PeerSuggestion[] 
     weakStudent: r.weakStudent,
     strongStudent: r.strongStudent,
     mentorName: r.strongStudentName || r.strongStudent,
+    mentorRegNo: r.strongStudentRegNo || null,
     studentName: r.weakStudentName || r.weakStudent,
+    studentRegNo: r.weakStudentRegNo || null,
     subject: r.subject,
     reason: r.reason,
     predictedLift: 0.05 + Math.random() * 0.1,

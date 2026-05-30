@@ -172,6 +172,7 @@ async function buildSectionRiskRollup(section) {
   const rollup = students.map((s) => {
     const studentId = String(s._id);
     const studentName = s.name || s.email || studentId;
+    const studentRegNo = s.regNo || null;
     const sub = submissionByStudent.get(studentId) || null;
 
     const avgMarks = sub ? Number(sub.avgMarks) || 0 : 0;
@@ -188,6 +189,7 @@ async function buildSectionRiskRollup(section) {
     return {
       studentId,
       studentName,
+      studentRegNo,
       avgMarks,
       totalSubmissions,
       lateCount,
@@ -229,6 +231,7 @@ async function buildSectionRiskRollup(section) {
     return {
       studentId: s.studentId,
       studentName: s.studentName,
+      studentRegNo: s.studentRegNo,
       avgMarks: Math.round(Number(s.avgMarks || 0) * 100) / 100,
       totalSubmissions: Number(s.totalSubmissions) || 0,
       lateRatio: Math.round(Number(s.lateRatio || 0) * 100) / 100,
@@ -537,16 +540,20 @@ const getPeerSuggestions = async (req, res) => {
     }
     const studentDocs = await User.find({
       _id: { $in: [...allStudentIds].filter((id) => mongoose.Types.ObjectId.isValid(id)) },
-    }).select("name email");
+    }).select("name email regNo");
     const nameMap = new Map();
+    const regNoMap = new Map();
     for (const doc of studentDocs) {
       nameMap.set(String(doc._id), doc.name || doc.email || String(doc._id));
+      regNoMap.set(String(doc._id), doc.regNo || null);
     }
 
     const enrichedSuggestions = suggestions.map((s) => ({
       ...s,
       weakStudentName: nameMap.get(s.weakStudent) || s.weakStudent,
+      weakStudentRegNo: regNoMap.get(s.weakStudent) || null,
       strongStudentName: nameMap.get(s.strongStudent) || s.strongStudent,
+      strongStudentRegNo: regNoMap.get(s.strongStudent) || null,
     }));
 
     res.status(200).json(enrichedSuggestions);
@@ -701,6 +708,7 @@ const getTopPerformers = async (req, res) => {
       .map((s) => ({
         studentId: s.studentId,
         studentName: s.studentName,
+        studentRegNo: s.studentRegNo,
         overallStrength: s.overallStrength,
         engagementScore: s.engagementScore,
         avgMarks: s.avgMarks,

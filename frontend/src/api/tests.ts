@@ -27,6 +27,7 @@ export interface TestAttempt {
     _id: string;
     name: string;
     email: string;
+    regNo?: string;
     section?: string;
   };
   testId: string;
@@ -89,12 +90,14 @@ export interface TeacherTestSummary {
   topScorers?: Array<{
     studentId: string;
     studentName: string;
+    studentRegNo?: string;
     testId: string;
     score: number;
   }>;
   violationLeaderboard?: Array<{
     studentId: string;
     studentName: string;
+    studentRegNo?: string;
     violations: number;
   }>;
 }

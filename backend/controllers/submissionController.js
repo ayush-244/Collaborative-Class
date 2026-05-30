@@ -75,7 +75,7 @@ const getSubmissions = async (req, res) => {
     const submissions = await Submission.find({
       assignment: req.params.assignmentId,
     })
-      .populate("student", "name email")
+      .populate("student", "name email regNo")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

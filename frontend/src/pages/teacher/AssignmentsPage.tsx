@@ -9,6 +9,7 @@ import {
   type Submission
 } from "../../api/assignments";
 import { Button } from "../../components/ui/button";
+import { RegNoBadge } from "../../components/ui/RegNoBadge";
 import { cn } from "../../utils/cn";
 import { CalendarRange, Clock, FileText, PencilLine, XCircle, Trash2, CalendarClock } from "lucide-react";
 
@@ -499,20 +500,23 @@ export const TeacherAssignmentsPage: React.FC = () => {
                       className="rounded-2xl bg-slate-900/80 px-3 py-2.5"
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-slate-50">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-slate-50 truncate">
                             {s.student.name}
                           </p>
-                          <p className="text-[10px] text-slate-400">
-                            {new Date(s.createdAt).toLocaleString()}{" "}
-                            {s.isLate && (
-                              <span className="ml-1 rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[9px] text-rose-200">
-                                Late
-                              </span>
-                            )}
-                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            {s.student.regNo && <RegNoBadge regNo={s.student.regNo} />}
+                            <p className="text-[10px] text-slate-400">
+                              {new Date(s.createdAt).toLocaleString()}{" "}
+                              {s.isLate && (
+                                <span className="ml-1 rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[9px] text-rose-200">
+                                  Late
+                                </span>
+                              )}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
                           {gradingSubmissionId === s._id ? (
                             <div className="flex items-center gap-1.5">
                               <input

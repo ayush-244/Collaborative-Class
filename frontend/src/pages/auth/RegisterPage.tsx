@@ -24,6 +24,7 @@ const registerSchema = z
     role: z.enum(["student", "teacher"], {
       required_error: "Select a role"
     }),
+    regNo: z.string().optional(),
     section: z.string().optional()
   })
   .refine(
@@ -32,6 +33,14 @@ const registerSchema = z
     {
       message: "Section is required for students",
       path: ["section"]
+    }
+  )
+  .refine(
+    (data) =>
+      data.role === "student" ? Boolean(data.regNo && data.regNo.trim()) : true,
+    {
+      message: "Registration Number is required for students",
+      path: ["regNo"]
     }
   );
 
@@ -55,6 +64,7 @@ export const RegisterPage: React.FC = () => {
       email: "",
       password: "",
       role: undefined,
+      regNo: "",
       section: ""
     }
   });
@@ -65,7 +75,11 @@ export const RegisterPage: React.FC = () => {
     setServerError(null);
     try {
       await registerUser({
-        ...values,
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        role: values.role,
+        regNo: values.regNo ? values.regNo.trim() : undefined,
         section: values.section?.trim() || undefined
       });
       navigate("/");
@@ -274,6 +288,35 @@ export const RegisterPage: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {role === "student" && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-300">
+                  Registration Number <span className="text-rose-400">*</span>
+                </label>
+                <div
+                  className={cn(
+                    "flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/80 px-3 py-2.5 text-xs focus-within:border-emerald-500/70 focus-within:ring-1 focus-within:ring-emerald-500/70",
+                    errors.regNo && "border-rose-500/70"
+                  )}
+                >
+                  <GraduationCap className="h-3.5 w-3.5 text-slate-500" />
+                  <input
+                    {...register("regNo")}
+                    placeholder="E.g. RA221100301001"
+                    className="flex-1 bg-transparent text-xs text-slate-50 outline-none placeholder:text-slate-500"
+                  />
+                </div>
+                {errors.regNo && (
+                  <p className="text-[11px] text-rose-300">
+                    {errors.regNo.message}
+                  </p>
+                )}
+                <p className="text-[10px] text-slate-500">
+                  Your unique university roll number for enrollment verification
+                </p>
+              </div>
+            )}
 
             <Button
               type="submit"

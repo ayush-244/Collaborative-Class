@@ -10,19 +10,33 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // ===============================
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, section } = req.body;
+    const { name, email, password, role, section, regNo } = req.body;
 
+    // Validate required fields
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Please fill all required fields" });
     }
 
+    // Validate regNo for students
+    if (role === "student" && !regNo) {
+      return res.status(400).json({ message: "Registration Number is required for students" });
+    }
+
+    // Check if email already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // Check if regNo already exists (for students only)
+    if (regNo) {
+      const regNoExists = await User.findOne({ regNo: regNo.trim() });
+      if (regNoExists) {
+        return res.status(400).json({ message: "Registration Number already registered" });
+      }
+    }
+
     let isUniversityUser = false;
-    let regNo = null;
 
     if (email.endsWith("@srmap.edu.in")) {
       isUniversityUser = true;
@@ -37,7 +51,7 @@ const registerUser = async (req, res) => {
       password: hashedPassword,
       role,
       section,
-      regNo,
+      regNo: regNo ? regNo.trim() : null,
       isUniversityUser,
     });
 
@@ -48,11 +62,21 @@ const registerUser = async (req, res) => {
       role: user.role,
       section: user.section,
       isUniversityUser: user.isUniversityUser,
-      regNo: user.regNo,
+      regNo: user.regNo || null,
       token: generateToken(user._id),
     });
 
   } catch (error) {
+    // Handle unique constraint errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      if (field === "regNo") {
+        return res.status(400).json({ message: "Registration Number already registered" });
+      }
+      if (field === "email") {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+    }
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -74,7 +98,7 @@ const loginUser = async (req, res) => {
         role: user.role,
         section: user.section,
         isUniversityUser: user.isUniversityUser,
-        regNo: user.regNo,
+        regNo: user.regNo || null,
         token: generateToken(user._id),
       });
     }
@@ -116,19 +140,29 @@ const googleAuth = async (req, res) => {
     if (email.endsWith("@srmap.edu.in")) {
       isUniversityUser = true;
 
-      if (name.includes("|")) {
-        regNo = name.split("|")[1].trim();
+      // Try to extract regNo from name if format is "name | regNo"
+      if (name && name.includes("|")) {
+        const parts = name.split("|");
+        regNo = parts[1].trim();
+        
+        // Validate regNo doesn't already exist
+        const existingUser = await User.findOne({ regNo });
+        if (existingUser && existingUser.email !== email) {
+          console.warn("[GoogleAuth] RegNo already registered:", regNo);
+          // Don't assign regNo if it already exists for another user
+          regNo = null;
+        }
       }
     }
 
     if (!user) {
       console.log("[GoogleAuth] User not found, creating new user:", email);
       user = await User.create({
-        name,
+        name: name.split("|")[0] || name, // Remove regNo from name if present
         email,
         password: "google-auth",
         role: "student",
-        regNo,
+        regNo: regNo,
         isUniversityUser,
       });
       console.log("[GoogleAuth] New user created with ID:", user._id);
@@ -146,7 +180,7 @@ const googleAuth = async (req, res) => {
       role: user.role,
       section: user.section,
       isUniversityUser: user.isUniversityUser,
-      regNo: user.regNo,
+      regNo: user.regNo || null,
       token: jwtToken,
     };
 
@@ -194,7 +228,7 @@ const updateSection = async (req, res) => {
       role: user.role,
       section: user.section,
       isUniversityUser: user.isUniversityUser,
-      regNo: user.regNo,
+      regNo: user.regNo || null,
     });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });

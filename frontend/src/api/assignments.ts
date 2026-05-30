@@ -37,6 +37,7 @@ export interface Submission {
     _id: string;
     name: string;
     email: string;
+    regNo?: string;
   };
   content: string;
   isLate: boolean;

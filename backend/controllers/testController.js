@@ -379,7 +379,7 @@ const getTeacherAttempts = async (req, res) => {
 
     const attempts = await TestAttempt.find({ testId: test._id })
       .sort({ submittedAt: -1, startedAt: -1 })
-      .populate("studentId", "name email section");
+      .populate("studentId", "name email regNo section");
 
     res.json(
       attempts.map((attempt) => ({
@@ -407,7 +407,7 @@ const getTeacherSummary = async (req, res) => {
 
     const attempts = await TestAttempt.find({ testId: { $in: testIds } }).populate(
       "studentId",
-      "name email section"
+      "name email regNo section"
     );
     const totalAttempts = attempts.length;
     const scores = attempts.map((attempt) => attempt.score).filter((score) => Number.isFinite(score));
@@ -429,6 +429,7 @@ const getTeacherSummary = async (req, res) => {
       .map((attempt) => ({
         studentId: attempt.studentId?._id ? String(attempt.studentId._id) : String(attempt.studentId),
         studentName: attempt.studentId?.name || "Student",
+        studentRegNo: attempt.studentId?.regNo || undefined,
         testId: String(attempt.testId),
         score: Number(attempt.score || 0),
       }));
@@ -439,6 +440,7 @@ const getTeacherSummary = async (req, res) => {
         const current = acc.get(key) || {
           studentId: key,
           studentName: attempt.studentId?.name || "Student",
+          studentRegNo: attempt.studentId?.regNo || undefined,
           violations: 0,
         };
         current.violations += Number(attempt.tabSwitchCount || 0);

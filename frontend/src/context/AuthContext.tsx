@@ -112,6 +112,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
       email: string;
       password: string;
       role: Role;
+      regNo?: string;
       section?: string;
     }) => {
       const res = await api.post<BackendAuthResponse>("/auth/register", payload);

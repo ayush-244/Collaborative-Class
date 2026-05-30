@@ -31,9 +31,12 @@ import { cn } from "../../utils/cn";
 import { CalendarRange, Clock, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../routes/paths";
+import { useAuth } from "../../context/AuthContext";
+import { RegNoBadge } from "../../components/ui/RegNoBadge";
 
 export const StudentDashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [strength, setStrength] = React.useState<StudentStrengthRow[] | null>(
     null
   );
@@ -154,7 +157,28 @@ export const StudentDashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
+      {/* Student Profile Section */}
+      {user && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-surface rounded-3xl p-4"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-semibold text-slate-50">
+                Welcome, {user.name}
+              </h1>
+              <p className="mt-1 text-xs text-slate-400">
+                {user.section || "Section not assigned"} • {user.email}
+              </p>
+            </div>
+            <RegNoBadge regNo={user.regNo} variant="standalone" />
+          </div>
+        </motion.div>
+      )}
+
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.4fr)]">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}

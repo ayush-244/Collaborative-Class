@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Play, Trash2, PencilLine, BarChart3, Users, ShieldAlert } from "lucide-react";
 import { Button } from "../../components/ui/button";
+import { RegNoBadge } from "../../components/ui/RegNoBadge";
 import { cn } from "../../utils/cn";
 import { ROUTES } from "../../routes/paths";
 import { TestsApi, type TeacherTestSummary, type TestListItem } from "../../api/tests";
@@ -95,8 +96,13 @@ export const TeacherTestsPage: React.FC = () => {
             <div className="mt-2 space-y-1.5 text-[11px] text-slate-300">
               {(summary?.topScorers ?? []).slice(0, 5).map((row, index) => (
                 <div key={`${row.studentId}-${row.testId}`} className="flex items-center justify-between rounded-xl bg-slate-900/80 px-3 py-2">
-                  <span>{index + 1}. {row.studentName}</span>
-                  <span>{row.score}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-medium">{index + 1}. {row.studentName}</span>
+                      {row.studentRegNo && <RegNoBadge regNo={row.studentRegNo} />}
+                    </div>
+                  </div>
+                  <span className="shrink-0 ml-2">{row.score}</span>
                 </div>
               ))}
               {!summary?.topScorers?.length && <p className="text-slate-400">No scores yet.</p>}
@@ -107,8 +113,13 @@ export const TeacherTestsPage: React.FC = () => {
             <div className="mt-2 space-y-1.5 text-[11px] text-slate-300">
               {(summary?.violationLeaderboard ?? []).slice(0, 5).map((row, index) => (
                 <div key={row.studentId} className="flex items-center justify-between rounded-xl bg-slate-900/80 px-3 py-2">
-                  <span>{index + 1}. {row.studentName}</span>
-                  <span>{row.violations}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-medium">{index + 1}. {row.studentName}</span>
+                      {row.studentRegNo && <RegNoBadge regNo={row.studentRegNo} />}
+                    </div>
+                  </div>
+                  <span className="shrink-0 ml-2">{row.violations}</span>
                 </div>
               ))}
               {!summary?.violationLeaderboard?.length && <p className="text-slate-400">No violations yet.</p>}
@@ -218,11 +229,14 @@ export const TeacherTestsPage: React.FC = () => {
                     attempts.map((attempt) => (
                       <div key={attempt._id} className="rounded-2xl bg-slate-900/80 px-3 py-2.5 text-[11px] text-slate-300">
                         <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <p className="font-medium text-slate-50">{attempt.studentId?.name ?? "Student"}</p>
-                            <p className="text-[10px] text-slate-400">{attempt.studentId?.email}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-50 truncate">{attempt.studentId?.name ?? "Student"}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              {attempt.studentId?.regNo && <RegNoBadge regNo={attempt.studentId.regNo} />}
+                              <p className="text-[10px] text-slate-400 truncate">{attempt.studentId?.email}</p>
+                            </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right shrink-0">
                             <p className="font-semibold text-slate-50">{attempt.score ?? 0} / {selected.totalMarks}</p>
                             <p className="text-[10px] text-slate-400">{attempt.autoSubmitted ? "Auto-submitted" : "Submitted"}</p>
                           </div>

@@ -27,6 +27,7 @@ import { StatCard } from "../../components/analytics/StatCard";
 import { RiskBadge } from "../../components/analytics/RiskBadge";
 import { TrendPill } from "../../components/analytics/TrendPill";
 import { ProgressBar } from "../../components/analytics/ProgressBar";
+import { RegNoBadge } from "../../components/ui/RegNoBadge";
 import { Button } from "../../components/ui/button";
 import { cn } from "../../utils/cn";
 import { CalendarRange, ChevronRight, Clock, Link2, Sparkles, Trophy, Users, X, Search, ArrowUpDown, AlertTriangle, BookOpen, MessageCircle, Target } from "lucide-react";
@@ -145,7 +146,8 @@ export const TeacherDashboardPage: React.FC = () => {
       list = list.filter(
         (s) =>
           s.name.toLowerCase().includes(q) ||
-          s.studentId.toLowerCase().includes(q)
+          s.studentId.toLowerCase().includes(q) ||
+          (s.regNo?.toLowerCase().includes(q))
       );
     }
     list.sort((a, b) => {
@@ -206,9 +208,12 @@ export const TeacherDashboardPage: React.FC = () => {
                   <h2 className="text-sm font-semibold text-slate-50">
                     Intervention plan — {planStudent.name}
                   </h2>
-                  <p className="text-[11px] text-slate-400">
-                    ID: {planStudent.studentId.slice(0, 12)}…
-                  </p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {planStudent.regNo && <RegNoBadge regNo={planStudent.regNo} variant="inline" />}
+                    <p className="text-[11px] text-slate-400">
+                      ID: {planStudent.studentId.slice(0, 12)}…
+                    </p>
+                  </div>
                 </div>
               </div>
               <button
@@ -405,7 +410,7 @@ export const TeacherDashboardPage: React.FC = () => {
                 <input
                   value={studentSearch}
                   onChange={(e) => setStudentSearch(e.target.value)}
-                  placeholder="Search by name or ID…"
+                  placeholder="Search by name, ID, or Reg No…"
                   className="w-full bg-transparent text-xs text-slate-50 outline-none placeholder:text-slate-500"
                 />
               </div>
@@ -428,9 +433,9 @@ export const TeacherDashboardPage: React.FC = () => {
             </div>
 
             {/* Table header */}
-            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-2 px-6 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+            <div className="grid grid-cols-[2fr_1.2fr_1fr_1fr_1fr_1fr] gap-2 px-6 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-400">
               {([
-                { key: "name" as const, label: "Student" },
+                { key: "name" as const, label: "Student / Reg No" },
                 { key: "risk" as const, label: "Risk" },
                 { key: "marks" as const, label: "Avg marks" },
                 { key: "engagement" as const, label: "Engagement" },
@@ -460,7 +465,7 @@ export const TeacherDashboardPage: React.FC = () => {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(idx * 0.02, 0.3) }}
-                    className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] items-center gap-2 rounded-xl px-4 py-3 text-[11px] text-slate-200 transition hover:bg-slate-900/60"
+                    className="grid grid-cols-[2fr_1.2fr_1fr_1fr_1fr_1fr] items-center gap-2 rounded-xl px-4 py-3 text-[11px] text-slate-200 transition hover:bg-slate-900/60"
                   >
                     <div className="flex items-center gap-2.5">
                       <div className={cn(
@@ -473,9 +478,12 @@ export const TeacherDashboardPage: React.FC = () => {
                       )}>
                         {s.name.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <p className="text-xs font-medium text-slate-50">{s.name}</p>
-                        <p className="text-[10px] text-slate-500">ID: {s.studentId.slice(0, 10)}…</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-slate-50 truncate">{s.name}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          {s.regNo && <RegNoBadge regNo={s.regNo} />}
+                          <p className="text-[10px] text-slate-500 truncate">ID: {s.studentId.slice(0, 8)}…</p>
+                        </div>
                       </div>
                     </div>
                     <div>
@@ -844,18 +852,27 @@ export const TeacherDashboardPage: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className="flex items-center justify-between rounded-2xl bg-slate-900/70 px-3 py-2.5"
                 >
-                  <div>
-                    <p className="text-[11px] text-slate-400">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-slate-400 truncate">
                       {s.mentorName} ↔ {s.studentName}
                     </p>
-                    <p className="text-xs font-medium text-slate-50">
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      {(s.mentorRegNo || s.studentRegNo) && (
+                        <>
+                          {s.mentorRegNo && <RegNoBadge regNo={s.mentorRegNo} />}
+                          {s.mentorRegNo && s.studentRegNo && <span className="text-slate-600">·</span>}
+                          {s.studentRegNo && <RegNoBadge regNo={s.studentRegNo} />}
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs font-medium text-slate-50 mt-1">
                       {s.subject}
                     </p>
                     <p className="mt-0.5 text-[10px] text-slate-400">
                       {s.reason}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0 ml-2">
                     <p className="text-[10px] text-emerald-300">
                       +{(s.predictedLift * 100).toFixed(1)}% lift
                     </p>
@@ -968,20 +985,23 @@ export const TeacherDashboardPage: React.FC = () => {
                   key={p.studentId}
                   className="flex items-center justify-between rounded-2xl bg-slate-900/70 px-3 py-2.5"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold text-emerald-300">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold text-emerald-300 shrink-0">
                       <Trophy className="h-3 w-3" />
                     </div>
-                    <div>
-                      <p className="text-xs font-medium text-slate-50">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-slate-50 truncate">
                         #{idx + 1} — {p.studentName || p.studentId}
                       </p>
-                      <p className="text-[10px] text-slate-400">
-                        Avg marks: {p.avgMarks.toFixed(1)} · Strength: {p.overallStrength.toFixed(0)}
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        {p.studentRegNo && <RegNoBadge regNo={p.studentRegNo} />}
+                        <p className="text-[10px] text-slate-400">
+                          Avg: {p.avgMarks.toFixed(1)} · Strength: {p.overallStrength.toFixed(0)}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <p className="text-[10px] text-emerald-300">
                       Engagement {p.engagementScore.toFixed(0)}%
                     </p>
