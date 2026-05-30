@@ -86,7 +86,10 @@ const server = http.createServer(app);
 
 // Socket.io
 const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: {
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+  },
 });
 
 setIO(io);
