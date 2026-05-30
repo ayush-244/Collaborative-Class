@@ -1,4 +1,4 @@
-const Submission = require("../models/Submission");
+const Submission = require("../models/submission");
 const Assignment = require("../models/Assignment");
 
 // ===============================

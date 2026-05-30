@@ -1,5 +1,5 @@
 const Assignment = require("../models/Assignment");
-const Submission = require("../models/Submission");
+const Submission = require("../models/submission");
 const User = require("../models/User");
 
 const getTeacherDashboard = async (req, res) => {

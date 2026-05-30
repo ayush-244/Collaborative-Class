@@ -1,4 +1,4 @@
-const Submission = require("../models/Submission");
+const Submission = require("../models/submission");
 const DoubtThread = require("../models/DoubtThread");
 const DoubtReply = require("../models/DoubtReply");
 const User = require("../models/User");
