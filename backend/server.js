@@ -22,8 +22,34 @@ if (!fs.existsSync(uploadsDir)) {
 
 const app = express();
 
-app.use(cors());
+// Enhanced CORS configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+
+console.log(`[Server] CORS configured for origin: ${corsOptions.origin}`);
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  const method = req.method;
+  const path = req.path;
+  const ip = req.ip;
+  
+  console.log(`[${timestamp}] ${method} ${path} (from ${ip})`);
+  
+  if (path.includes("/auth/google")) {
+    console.log(`[OAuth] Request body keys:`, Object.keys(req.body));
+  }
+  
+  next();
+});
 
 // Serve uploaded files
 app.use("/uploads", express.static(uploadsDir));
@@ -122,6 +148,13 @@ io.on("connection", (socket) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`\n${'='.repeat(60)}`);
+  console.log(`✅ CollabClass Server Started`);
+  console.log(`📍 Running on: http://localhost:${PORT}`);
+  console.log(`🔐 Google OAuth Enabled`);
+  console.log(`${PORT === 5000 ? '⚡ Development Mode' : '🚀 Production Mode'}`);
+  console.log(`${'='.repeat(60)}\n`);
+});
 
 module.exports = { app, server, io };

@@ -127,9 +127,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
       | undefined;
 
     if (!clientId) {
-      // eslint-disable-next-line no-alert
-      alert("Google sign-in is not configured (missing VITE_GOOGLE_CLIENT_ID).");
-      return;
+      throw new Error("Google sign-in is not configured (missing VITE_GOOGLE_CLIENT_ID).");
     }
 
     const loadScript = () =>
@@ -162,34 +160,47 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
 
     const google = (window as any).google;
     if (!google?.accounts?.id) {
-      // eslint-disable-next-line no-alert
-      alert("Google sign-in is unavailable in this browser.");
-      return;
+      throw new Error("Google sign-in is unavailable in this browser.");
     }
 
     let inFlight = false;
+    let authError: Error | null = null;
 
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        if (!inFlight) {
+          reject(new Error("Google authentication timed out. Please try again."));
+        }
+      }, 120000); // 2 minute timeout
+
       google.accounts.id.initialize({
         client_id: clientId,
         callback: async (response: any) => {
+          clearTimeout(timeout);
           if (inFlight) {
             resolve();
             return;
           }
           inFlight = true;
           try {
+            console.log("[OAuth] Received Google credential, sending to backend...");
             const res = await api.post<BackendAuthResponse>("/auth/google", {
               token: response.credential
             });
+            console.log("[OAuth] Backend response received:", { userId: res.data._id, email: res.data.email });
             const mapped = mapBackendToAuthUser(res.data);
             persistAuth(mapped, res.data.token);
-          } finally {
+            console.log("[OAuth] Auth state updated successfully");
             resolve();
+          } catch (error) {
+            console.error("[OAuth] Google auth failed:", error);
+            authError = error instanceof Error ? error : new Error("Authentication failed");
+            reject(authError);
           }
         }
       });
       google.accounts.id.prompt();
+      console.log("[OAuth] Google prompt shown");
     });
   }, [mapBackendToAuthUser, persistAuth]);
 

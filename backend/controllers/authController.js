@@ -93,12 +93,20 @@ const googleAuth = async (req, res) => {
   try {
     const { token } = req.body;
 
+    if (!token) {
+      console.error("[GoogleAuth] No token provided in request");
+      return res.status(400).json({ message: "No token provided" });
+    }
+
+    console.log("[GoogleAuth] Starting Google OAuth verification...");
+
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const { name, email } = ticket.getPayload();
+    console.log("[GoogleAuth] Token verified successfully for email:", email);
 
     let user = await User.findOne({ email });
 
@@ -114,6 +122,7 @@ const googleAuth = async (req, res) => {
     }
 
     if (!user) {
+      console.log("[GoogleAuth] User not found, creating new user:", email);
       user = await User.create({
         name,
         email,
@@ -122,9 +131,15 @@ const googleAuth = async (req, res) => {
         regNo,
         isUniversityUser,
       });
+      console.log("[GoogleAuth] New user created with ID:", user._id);
+    } else {
+      console.log("[GoogleAuth] Existing user found with ID:", user._id);
     }
 
-    res.json({
+    const jwtToken = generateToken(user._id);
+    console.log("[GoogleAuth] JWT token generated successfully");
+
+    const response = {
       _id: user._id,
       name: user.name,
       email: user.email,
@@ -132,11 +147,24 @@ const googleAuth = async (req, res) => {
       section: user.section,
       isUniversityUser: user.isUniversityUser,
       regNo: user.regNo,
-      token: generateToken(user._id),
-    });
+      token: jwtToken,
+    };
+
+    console.log("[GoogleAuth] Sending successful response for user:", user.email);
+    res.json(response);
 
   } catch (error) {
-    res.status(401).json({ message: "Google authentication failed" });
+    console.error("[GoogleAuth] Error during Google authentication:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    if (error.message && error.message.includes("Invalid token")) {
+      return res.status(401).json({ message: "Invalid or expired Google token" });
+    }
+    
+    res.status(401).json({ message: "Google authentication failed: " + error.message });
   }
 };
 

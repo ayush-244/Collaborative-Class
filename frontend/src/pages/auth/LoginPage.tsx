@@ -20,6 +20,7 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login, loginWithGoogle } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const {
     register,
     handleSubmit,
@@ -48,6 +49,36 @@ export const LoginPage: React.FC = () => {
       } else {
         setServerError("Unable to sign in.");
       }
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setServerError(null);
+    setIsGoogleLoading(true);
+    try {
+      console.log("[LoginPage] Starting Google login flow...");
+      await loginWithGoogle();
+      console.log("[LoginPage] Google login succeeded, navigating to dashboard...");
+      navigate("/");
+    } catch (err: unknown) {
+      console.error("[LoginPage] Google login failed:", err);
+      if (err instanceof Error) {
+        setServerError(err.message);
+      } else if (
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        (err as any).response
+      ) {
+        const axiosErr = err as any;
+        const message =
+          axiosErr.response?.data?.message ?? "Google authentication failed.";
+        setServerError(message);
+      } else {
+        setServerError("Google authentication failed. Please try again.");
+      }
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -213,12 +244,20 @@ export const LoginPage: React.FC = () => {
               variant="outline"
               size="lg"
               className="w-full justify-center gap-2 text-xs"
-              onClick={() => {
-                void loginWithGoogle();
-              }}
+              onClick={handleGoogleLogin}
+              disabled={isGoogleLoading || isSubmitting}
             >
-              <Chrome className="h-4 w-4" />
-              Sign in with Google
+              {isGoogleLoading ? (
+                <>
+                  <div className="h-3 w-3 rounded-full border-2 border-slate-600 border-t-sky-400 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  <Chrome className="h-4 w-4" />
+                  Sign in with Google
+                </>
+              )}
             </Button>
           </form>
 
