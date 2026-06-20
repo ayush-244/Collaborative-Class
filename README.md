@@ -32,7 +32,7 @@
 | **Teacher** | Register with any `@srmap.edu.in` email → auto-assigned teacher role |
 | **Student** | Register with any other email → auto-assigned student role |
 
-> **Note:** The frontend is hosted on Vercel. The backend is deployed separately — see [Deployment](#deployment) for self-hosting instructions.
+> **Note:** The frontend is hosted on Vercel. The backend is deployed on render — see [Deployment](#deployment) for self-hosting instructions.
 
 ---
 
@@ -1022,7 +1022,7 @@ This project is licensed under the **ISC License** — see the [LICENSE](LICENSE
 
 <div align="center">
 
-Made with ❤️ by [Ayush](https://github.com/ayush-244)
+Made by [Ayush](https://github.com/ayush-244)
 
 ⭐ **Star this repo if you found it useful!** ⭐
 
