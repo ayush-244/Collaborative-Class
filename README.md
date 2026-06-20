@@ -1,124 +1,103 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/CollabClass-Classroom%20Intelligence-7c3aed?style=for-the-badge&logo=bookstack&logoColor=white" alt="CollabClass Banner" />
-</p>
+<div align="center">
 
-<h1 align="center">CollabClass</h1>
+<img src="https://img.shields.io/badge/CollabClass-Classroom%20Intelligence%20Platform-7c3aed?style=for-the-badge&logo=bookstack&logoColor=white" alt="CollabClass" height="40" />
 
-<p align="center">
-  <b>AI-Driven Classroom Collaboration & Intelligence Platform</b><br/>
-  <sub>Real-time collaboration · Analytics-driven insights · Peer mentoring · Role-based access</sub>
-</p>
+# CollabClass
 
-<p align="center">
-  <img src="https://img.shields.io/badge/node-%3E%3D18.0.0-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/Express-5.x-000000?style=flat-square&logo=express&logoColor=white" alt="Express" />
-  <img src="https://img.shields.io/badge/React-18.x-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React" />
-  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/MongoDB-9.x-47A248?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB" />
-  <img src="https://img.shields.io/badge/Socket.io-4.x-010101?style=flat-square&logo=socket.io&logoColor=white" alt="Socket.io" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-3.x-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="TailwindCSS" />
-  <img src="https://img.shields.io/badge/Vite-5.x-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite" />
-  <img src="https://img.shields.io/badge/license-ISC-blue?style=flat-square" alt="License" />
-</p>
+### AI-Driven Classroom Collaboration & Intelligence Platform
 
----
+*Real-time collaboration · Analytics-driven insights · Peer mentoring · Role-based access*
 
-## Table of Contents
+<br/>
 
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Environment Variables](#environment-variables)
-  - [Running the Application](#running-the-application)
-- [API Reference](#api-reference)
-  - [Authentication](#authentication)
-  - [Assignments](#assignments)
-  - [Submissions](#submissions)
-  - [Doubt Discussion Forum](#doubt-discussion-forum)
-  - [Notifications](#notifications)
-  - [Analytics & Intelligence](#analytics--intelligence)
-  - [Dashboard](#dashboard)
-  - [Study Materials](#study-materials)
-  - [Peer Sessions](#peer-sessions)
-- [Database Schema](#database-schema)
-- [Real-Time Events](#real-time-events)
-- [Authentication & Authorization](#authentication--authorization)
-- [Analytics Intelligence Engine](#analytics-intelligence-engine)
-- [Frontend Architecture](#frontend-architecture)
-- [Design System](#design-system)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Visit%20App-7c3aed?style=for-the-badge)](https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
+[![React](https://img.shields.io/badge/React-18.x-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![MongoDB](https://img.shields.io/badge/MongoDB-9.x-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://mongodb.com)
+[![Socket.io](https://img.shields.io/badge/Socket.io-4.x-010101?style=flat-square&logo=socket.io&logoColor=white)](https://socket.io)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.x-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue?style=flat-square)](LICENSE)
+
+</div>
 
 ---
 
-## Overview
+## 🌐 Live Demo
 
-**CollabClass** is a full-stack classroom collaboration platform that transforms traditional learning management into an intelligent, data-driven experience. Built on the MERN stack with TypeScript, it combines real-time communication, advanced analytics, and AI-powered peer mentoring to help teachers identify at-risk students, recommend interventions, and foster peer-to-peer learning — all within a modern, glass-morphism UI.
+> **Try it now →** [https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login](https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login)
+
+| Role | Demo Credentials |
+|------|-----------------|
+| **Teacher** | Register with any `@srmap.edu.in` email → auto-assigned teacher role |
+| **Student** | Register with any other email → auto-assigned student role |
+
+> **Note:** The frontend is hosted on Vercel. The backend is deployed separately — see [Deployment](#deployment) for self-hosting instructions.
+
+---
+
+## 📖 Overview
+
+**CollabClass** is a production-grade, full-stack classroom collaboration platform that transforms traditional learning management into an intelligent, data-driven experience. Built on the **MERN stack** with TypeScript, it combines real-time communication, advanced analytics, and AI-powered peer mentoring to help teachers identify at-risk students, recommend interventions, and foster peer-to-peer learning — all within a sleek **glass-morphism** UI.
 
 ### Who Is It For?
 
 | Role | What They Get |
 |------|---------------|
-| **Teachers** | Teaching Intelligence dashboard, assignment management with analytics, automated risk detection, peer mentor suggestions, intervention recommendations, section-wide analytics |
-| **Students** | Personal Learning Graph, assignment submissions, doubt discussion forum, study material access, peer mentoring sessions, performance trend tracking |
-| **Admins** | Full access control, thread moderation capabilities |
+| 🎓 **Teachers** | Teaching Intelligence dashboard · Assignment management with analytics · Automated risk detection · Peer mentor suggestions · Intervention recommendations · Section-wide analytics |
+| 🧑‍🎓 **Students** | Personal Learning Graph · Assignment submissions · Doubt discussion forum · Study material access · Peer mentoring sessions · Performance trend tracking |
+| 🛡️ **Admins** | Full access control · Thread moderation capabilities |
 
 ---
 
-## Key Features
+## ✨ Key Features
 
-### Core Platform
-- **Role-Based Access Control** — Three-tier role system (student / teacher / admin) with middleware-enforced permissions
-- **Section Isolation** — All data automatically scoped to user sections ensuring data segregation
+### 🔐 Core Platform
+- **Role-Based Access Control** — Three-tier role system (Student / Teacher / Admin) with middleware-enforced permissions
+- **Section Isolation** — All data automatically scoped to user sections ensuring strict data segregation
 - **Google OAuth + Email Auth** — Dual authentication with Google One Tap sign-in and traditional email/password
-- **University Detection** — Automatic identification of university users via `@srmap.edu.in` email domain
+- **University Detection** — Automatic teacher role assignment via `@srmap.edu.in` email domain
 
-### Assignment Management
+### 📝 Assignment Management
 - **Full CRUD Lifecycle** — Create, read, update (close) assignments with deadlines
 - **Auto-Expiry** — Assignments automatically transition to `expired` status when past deadline
-- **Late Submission Tracking** — System automatically flags late submissions
+- **Late Submission Tracking** — System automatically flags and records late submissions
 - **Per-Assignment Analytics** — Submission rates, grade distribution, top performers
 
-### Doubt Discussion Forum
+### 💬 Doubt Discussion Forum
 - **Threaded Discussions** — Nested reply tree with unlimited depth
 - **Assignment-Linked Threads** — Doubts can be linked to specific assignments or subjects
 - **Thread Moderation** — Pin, resolve, close, soft-delete threads
 - **Best Answer Marking** — Teachers can flag authoritative replies
 
-### Real-Time Notifications
+### 🔔 Real-Time Notifications
 - **WebSocket-Powered** — Instant notifications via Socket.io with JWT authentication
 - **Multi-Device Support** — Users receive notifications across all connected devices simultaneously
-- **Notification Types** — New threads, new replies, thread resolved, thread closed
+- **Notification Types** — New threads · New replies · Thread resolved · Thread closed
 - **Optimistic UI Updates** — Instant read-state toggling with background API sync
 
-### Analytics Intelligence Engine
+### 📊 Analytics Intelligence Engine
 - **Student Strength Mapping** — Per-subject strength scores derived from marks, submissions, and engagement
 - **Risk Index Calculation** — Composite risk scoring combining academic performance, submission timeliness, and engagement
-- **Declining Trend Detection** — Identifies students with 20%+ performance drops in recent months
+- **Declining Trend Detection** — Identifies students with ≥20% performance drops in recent months
 - **AI-Powered Peer Suggestions** — Automatically pairs weak students with strong mentors via round-robin matching
-- **Intervention Recommendations** — Generates per-student action items (Academic Support / Engagement Support / Monitor)
-- **Performance Trend Tracking** — Monthly trend visualization with DECLINING / IMPROVING / STABLE status
+- **Intervention Recommendations** — Generates per-student action items: Academic Support / Engagement Support / Monitor
+- **Performance Trend Tracking** — Monthly trend visualization with `DECLINING` / `IMPROVING` / `STABLE` status
 
-### Peer Mentoring
+### 🤝 Peer Mentoring
 - **Teacher-Initiated Sessions** — Structured pairing of strong and weak students per subject
-- **Session Lifecycle** — SUGGESTED → SCHEDULED → COMPLETED / CANCELLED
+- **Session Lifecycle** — `SUGGESTED` → `SCHEDULED` → `COMPLETED` / `CANCELLED`
 - **Duplicate Prevention** — System prevents creating duplicate open sessions for the same pair
 - **Section-Scoped** — Sessions respect section boundaries
 
-### Study Materials
+### 📚 Study Materials
 - **Shared Resource Library** — Both teachers and students can upload materials
 - **Section-Filtered Browsing** — Students see only their section's materials
 - **Owner Permissions** — Material owners and teachers can delete resources
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -146,7 +125,7 @@
 │                       ▼                 ▼                 │          │
 │              ┌──────────────────────────────────┐        │          │
 │              │    Notification Service           │◄───────┘          │
-│              │  (DB + Real-time Emit)            │                   │
+│              │  (DB Write + Real-time Emit)      │                   │
 │              └───────────────┬────────────────────┘                   │
 │                              │                                       │
 └──────────────────────────────┼───────────────────────────────────────┘
@@ -168,7 +147,7 @@
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 ### Backend
 
@@ -202,11 +181,11 @@
 | **Lucide React** | — | Icon library |
 | **Radix UI** | — | Accessible headless UI primitives |
 | **class-variance-authority** | — | Variant-based component styling |
-| **socket.io-client** | 4.x | Real-time client |
+| **socket.io-client** | 4.x | Real-time WebSocket client |
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 CollabClass/
@@ -311,7 +290,7 @@ CollabClass/
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -325,15 +304,15 @@ CollabClass/
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/CollabClass.git
+# 1. Clone the repository
+git clone https://github.com/ayush-244/CollabClass.git
 cd CollabClass
 
-# Install backend dependencies
+# 2. Install backend dependencies
 cd backend
 npm install
 
-# Install frontend dependencies
+# 3. Install frontend dependencies
 cd ../frontend
 npm install
 ```
@@ -346,7 +325,7 @@ npm install
 # MongoDB connection string
 MONGO_URI=mongodb://localhost:27017/collabclass
 
-# JWT secret key (use a strong, random string)
+# JWT secret key (use a strong, random string — minimum 256-bit)
 JWT_SECRET=your_super_secret_jwt_key_here
 
 # Google OAuth Client ID
@@ -363,7 +342,7 @@ PORT=5000
 VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 ```
 
-> **Note:** Never commit `.env` files to version control. Add them to `.gitignore`.
+> ⚠️ **Never commit `.env` files to version control.** They are already included in `.gitignore`.
 
 ### Running the Application
 
@@ -373,15 +352,18 @@ VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 # Terminal 1 — Start the backend server
 cd backend
 npm run dev
-# Server starts on http://localhost:5000
+# → Server starts on http://localhost:5000
 
 # Terminal 2 — Start the frontend dev server
 cd frontend
 npm run dev
-# Client starts on http://localhost:5173
+# → Client starts on http://localhost:5173
 ```
-The Vite dev server automatically proxies `/api/*` and `/socket.io` requests to the backend at `http://localhost:5000`, so no CORS configuration is needed during development.
+
+> The Vite dev server automatically proxies `/api/*` and `/socket.io` requests to `http://localhost:5000`, so no CORS configuration is needed during development.
+
 #### Production Build
+
 ```bash
 # Build the frontend
 cd frontend
@@ -393,13 +375,9 @@ cd ../backend
 npm start
 ```
 
-
-
-
-
 ---
 
-## API Reference
+## 📡 API Reference
 
 All endpoints are prefixed with `/api`. Protected routes require an `Authorization: Bearer <token>` header.
 
@@ -560,10 +538,12 @@ All endpoints are prefixed with `/api`. Protected routes require an `Authorizati
 | `PATCH` | `/api/notifications/read-all` | ✅ | Mark all notifications as read |
 
 **Notification Types:**
-- `NEW_THREAD` — A new doubt thread was created in your section
-- `NEW_REPLY` — Someone replied to a thread you're participating in
-- `THREAD_RESOLVED` — A thread you're involved in was resolved
-- `THREAD_CLOSED` — A thread you're involved in was closed
+| Type | Trigger |
+|---|---|
+| `NEW_THREAD` | A new doubt thread was created in your section |
+| `NEW_REPLY` | Someone replied to a thread you're participating in |
+| `THREAD_RESOLVED` | A thread you're involved in was resolved |
+| `THREAD_CLOSED` | A thread you're involved in was closed |
 
 ---
 
@@ -679,7 +659,7 @@ SUGGESTED → SCHEDULED → COMPLETED
 
 ---
 
-## Database Schema
+## 🗄️ Database Schema
 
 ### Entity-Relationship Overview
 
@@ -743,9 +723,9 @@ SUGGESTED → SCHEDULED → COMPLETED
 
 ---
 
-## Real-Time Events
+## ⚡ Real-Time Events
 
-CollabClass uses Socket.io for bidirectional real-time communication with JWT-authenticated connections.
+CollabClass uses **Socket.io** for bidirectional real-time communication with JWT-authenticated connections.
 
 ### Connection Flow
 
@@ -776,7 +756,7 @@ The socket manager uses a `Map<userId, Set<socketId>>` structure to support mult
 
 ---
 
-## Authentication & Authorization
+## 🔒 Authentication & Authorization
 
 ### Two-Layer Security Model
 
@@ -799,22 +779,24 @@ Request → [Auth Middleware] → [Role Middleware] → Controller
 
 ### JWT Configuration
 
-- **Algorithm:** HS256 (default)
-- **Expiry:** 7 days
-- **Storage:** `localStorage` key: `collabclass-jwt`
-- **Transport:** `Authorization: Bearer <token>` header
+| Setting | Value |
+|---|---|
+| **Algorithm** | HS256 |
+| **Expiry** | 7 days |
+| **Storage** | `localStorage` key: `collabclass-jwt` |
+| **Transport** | `Authorization: Bearer <token>` header |
 
 ### Role Hierarchy
 
 | Role | Permissions |
 |---|---|
-| **Admin** | Full access, thread moderation |
-| **Teacher** | Assignment CRUD, grading, analytics, peer sessions, thread moderation |
-| **Student** | Submissions, doubt threads, study materials, personal analytics |
+| 🛡️ **Admin** | Full access, thread moderation |
+| 🎓 **Teacher** | Assignment CRUD, grading, analytics, peer sessions, thread moderation |
+| 🧑‍🎓 **Student** | Submissions, doubt threads, study materials, personal analytics |
 
 ---
 
-## Analytics Intelligence Engine
+## 🧠 Analytics Intelligence Engine
 
 The analytics controller (~875 lines) implements a comprehensive intelligence layer using MongoDB aggregation pipelines.
 
@@ -839,13 +821,13 @@ riskIndex = 100 - overallStrength
 
 | Risk Level | Condition |
 |---|---|
-| **HIGH** | Risk index ≥ 60 |
-| **MEDIUM** | Risk index ≥ 35 |
-| **LOW** | Risk index < 35 |
+| 🔴 **HIGH** | Risk index ≥ 60 |
+| 🟡 **MEDIUM** | Risk index ≥ 35 |
+| 🟢 **LOW** | Risk index < 35 |
 
 ### Declining Trend Detection
 
-The system analyzes monthly performance windows and flags students with a **20% or greater drop** in recent months compared to their baseline performance.
+The system analyzes monthly performance windows and flags students with a **≥20% drop** in recent months compared to their baseline.
 
 ### Peer Suggestion Algorithm
 
@@ -864,7 +846,7 @@ The system analyzes monthly performance windows and flags students with a **20% 
 
 ---
 
-## Frontend Architecture
+## 🖥️ Frontend Architecture
 
 ### Routing Strategy
 
@@ -905,7 +887,7 @@ All API calls go through a centralized Axios instance (`src/api/axios.ts`) with:
 
 ---
 
-## Design System
+## 🎨 Design System
 
 CollabClass uses a custom **glass-morphism** design system built on Tailwind CSS.
 
@@ -929,9 +911,16 @@ CollabClass uses a custom **glass-morphism** design system built on Tailwind CSS
 
 ---
 
-## Deployment
+## 🚢 Deployment
 
-### Docker (Recommended)
+### Live Deployment
+
+| Service | URL |
+|---|---|
+| **Frontend (Vercel)** | [https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app](https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login) |
+| **Backend** | Deploy separately (Render / Railway / any Node.js host) |
+
+### Docker (Self-Hosted)
 
 ```dockerfile
 # Backend Dockerfile
@@ -958,7 +947,17 @@ COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
 ```
 
-### Environment Checklist for Production
+### Cloud Deployment Options
+
+| Platform | Backend | Frontend | Database |
+|---|---|---|---|
+| **Railway** | Node.js service | Static site | MongoDB Atlas |
+| **Render** | Web service | Static site | MongoDB Atlas |
+| **Vercel** | — | ✅ Deployed | MongoDB Atlas |
+| **AWS** | EC2 / ECS | S3 + CloudFront | DocumentDB / Atlas |
+| **DigitalOcean** | App Platform | App Platform | Managed MongoDB |
+
+### Production Checklist
 
 - [ ] Set `NODE_ENV=production`
 - [ ] Use a strong, random `JWT_SECRET` (minimum 256-bit)
@@ -970,19 +969,9 @@ EXPOSE 80
 - [ ] Configure proper logging (e.g., Winston, Pino)
 - [ ] Set up health check endpoint monitoring
 
-### Cloud Deployment Options
-
-| Platform | Backend | Frontend | Database |
-|---|---|---|---|
-| **Railway** | Node.js service | Static site | MongoDB Atlas |
-| **Render** | Web service | Static site | MongoDB Atlas |
-| **Vercel** | — | Vercel deployment | MongoDB Atlas |
-| **AWS** | EC2 / ECS | S3 + CloudFront | DocumentDB / Atlas |
-| **DigitalOcean** | App Platform | App Platform | Managed MongoDB |
-
 ---
 
-## Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Please follow these guidelines:
 
@@ -999,8 +988,8 @@ Contributions are welcome! Please follow these guidelines:
 
 ### Code Standards
 
-- **Backend:** Follow existing Express/Mongoose patterns. Use async/await for all asynchronous operations.
-- **Frontend:** TypeScript strict mode. Use functional components with hooks. Follow the established file/folder conventions.
+- **Backend:** Follow existing Express/Mongoose patterns. Use `async/await` for all asynchronous operations.
+- **Frontend:** TypeScript strict mode. Use functional components with hooks. Follow established file/folder conventions.
 - **Commits:** Use [Conventional Commits](https://www.conventionalcommits.org/) format:
   ```
   feat: add student attendance tracking
@@ -1018,27 +1007,25 @@ Contributions are welcome! Please follow these guidelines:
 
 ### Reporting Issues
 
-- Use GitHub Issues to report bugs or request features
+- Use [GitHub Issues](https://github.com/ayush-244/CollabClass/issues) to report bugs or request features
 - Include steps to reproduce for bugs
 - Include expected vs. actual behavior
 - Attach screenshots for UI issues
 
 ---
 
-## License
+## 📄 License
 
-This project is licensed under the **ISC License**.
+This project is licensed under the **ISC License** — see the [LICENSE](LICENSE) file for details.
 
 ---
-<p align="center">
-  Smarter classrooms
-</p>
 
+<div align="center">
 
+Made with ❤️ by [Ayush](https://github.com/ayush-244)
 
+⭐ **Star this repo if you found it useful!** ⭐
 
+[🚀 Live Demo](https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login) · [🐛 Report Bug](https://github.com/ayush-244/CollabClass/issues) · [✨ Request Feature](https://github.com/ayush-244/CollabClass/issues)
 
-
-
-
-
+</div>
