@@ -1024,7 +1024,6 @@ This project is licensed under the **ISC License** — see the [LICENSE](LICENSE
 
 Made by [Ayush](https://github.com/ayush-244)
 
-
 ⭐ **Star this repo if you found it useful!** ⭐
 
 [🚀 Live Demo](https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login) · [🐛 Report Bug](https://github.com/ayush-244/CollabClass/issues) · [✨ Request Feature](https://github.com/ayush-244/CollabClass/issues)
