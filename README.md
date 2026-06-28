@@ -10,7 +10,7 @@
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Visit%20App-7c3aed?style=for-the-badge)](https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login)
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Visit%20App-7c3aed?style=for-the-badge)](https://collaborative-class-frontend.vercel.app/login)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
 [![React](https://img.shields.io/badge/React-18.x-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
