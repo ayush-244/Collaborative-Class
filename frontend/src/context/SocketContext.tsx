@@ -48,7 +48,8 @@ export const SocketProvider: React.FC<React.PropsWithChildren> = ({
       return;
     }
 
-    const s = io("/", {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "/";
+    const s = io(backendUrl, {
       path: "/socket.io",
       auth: {
         token,
