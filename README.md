@@ -25,7 +25,7 @@
 
 ## 🌐 Live Demo
 
-> **Try it now →** [https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login](https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login)
+> **Try it now →** [https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login](https://collaborative-class-frontend.vercel.app/login)
 
 | Role | Demo Credentials |
 |------|-----------------|
