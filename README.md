@@ -25,7 +25,7 @@
 
 ## 🌐 Live Demo
 
-> **Try it now →** [https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login](https://collaborative-class-frontend.vercel.app/login)
+> **Try it now →** [https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login](https://collaborative-class-frontend.vercel.app)
 
 | Role | Demo Credentials |
 |------|-----------------|
@@ -1027,6 +1027,6 @@ Made by [Ayush](https://github.com/ayush-244)
 
 ⭐ **Star this repo if you found it useful!** ⭐
 
-[🚀 Live Demo](https://collaborative-class-frontend-m3p8hel1z-ayush-244s-projects.vercel.app/login) · [🐛 Report Bug](https://github.com/ayush-244/CollabClass/issues) · [✨ Request Feature](https://github.com/ayush-244/CollabClass/issues)
+[🚀 Live Demo](https://collaborative-class-frontend.vercel.app) · [🐛 Report Bug](https://github.com/ayush-244/CollabClass/issues) · [✨ Request Feature](https://github.com/ayush-244/CollabClass/issues)
 
 </div>
