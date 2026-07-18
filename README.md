@@ -1030,3 +1030,9 @@ Made by [Ayush](https://github.com/ayush-244)
 [🚀 Live Demo](https://collaborative-class-frontend.vercel.app) · [🐛 Report Bug](https://github.com/ayush-244/CollabClass/issues) · [✨ Request Feature](https://github.com/ayush-244/CollabClass/issues)
 
 </div>
+
+
+
+
+
+
